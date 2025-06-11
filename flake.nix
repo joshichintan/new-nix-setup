@@ -20,15 +20,6 @@
         nixpkgs.hostPlatform = "aarch64-darwin";
       };
     };
-
-    # standalone home-manager configuration
-    homeConfigurations = {
-      chintan = home-manager.lib.homeManagerConfiguration {
-        pkgs          = pkgs;
-        modules       = [ ./users/chintan.nix ];
-        homeDirectory = "/Users/chintan";
-        username      = "chintan";
-      };
     };
   };
 } 
