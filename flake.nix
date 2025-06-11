@@ -8,9 +8,7 @@
   };
 
   outputs = { self, nixpkgs, darwin, home-manager, ... }:
-  let
-    pkgs = import nixpkgs { inherit system; };
-  in {
+ {
     # nix-darwin host configurations
     darwinConfigurations = {
       personal = darwin.lib.darwinSystem {
