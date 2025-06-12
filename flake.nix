@@ -1,24 +1,49 @@
 {
-  description = "My personal dotfiles (nix-darwin + home-manager)";
-
   inputs = {
-    nixpkgs.url        = "github:NixOS/nixpkgs/nixos-unstable";
-    darwin.url         = "github:LnL7/nix-darwin";
-    home-manager.url   = "github:nix-community/home-manager";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-darwin.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    nix-darwin.url = "github:lnl7/nix-darwin";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs-darwin";
+
+    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+    homebrew-core = { url = "github:homebrew/homebrew-core"; flake = false; };
+    homebrew-cask = { url = "github:homebrew/homebrew-cask"; flake = false; };
+    homebrew-bundle = { url = "github:homebrew/homebrew-bundle"; flake = false; };
+
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs-darwin";
+
+    # disko.url = "github:nix-community/disko";
+    # disko.inputs.nixpkgs.follows = "nixpkgs";
+
+    # vscode-server.url = "github:nix-community/nixos-vscode-server";
   };
 
-  outputs = { self, nixpkgs, darwin, home-manager, ... }:
- {
-    # nix-darwin host configurations
-    darwinConfigurations = {
-      personal = darwin.lib.darwinSystem {
-        services.nix-daemon.enable = true;
-        nix.settings.experimental-features = [ "nix-command" "flakes" ];
-        programs.zsh.enable = true;
-        system.configurationRevision = self.rev or self.dirtyRev or null;
-        system.stateVersion = 5;
-        nixpkgs.hostPlatform = "aarch64-darwin";
+  outputs = { ... }@inputs:
+    with inputs;
+    let
+      inherit (self) outputs;
+
+      stateVersion = "24.05";
+      libx = import ./lib { inherit inputs outputs stateVersion; };
+
+    in {
+
+      darwinConfigurations = {
+        # personal
+        slartibartfast = libx.mkDarwin { hostname = "slartibartfast"; };
+        nauvis = libx.mkDarwin { hostname = "nauvis"; };
+        mac-studio = libx.mkDarwin { hostname = "mac-studio"; };
+        mac-mini = libx.mkDarwin { hostname = "mac-mini"; };
+        mooncake = libx.mkDarwin { hostname = "mooncake"; };
+
+        # work
+        baldrick = libx.mkDarwin { hostname = "baldrick"; };
+        magrathea = libx.mkDarwin { hostname = "magrathea"; };
       };
+
     };
-  };
-} 
+
+}
