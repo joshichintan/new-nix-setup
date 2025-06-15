@@ -3,7 +3,7 @@ let
   inherit (inputs) nixpkgs nixpkgs-unstable;
 in
 {
-  users.users.alex.home = "/Users/alex";
+  users.users.${username}.home = "/Users/${username}";
 
   nix = {
     settings = {
@@ -15,7 +15,7 @@ in
   system.stateVersion = 5;
 
   # Set primary user for system-wide activation
-  system.primaryUser = "alex";
+  system.primaryUser = "${username}";
 
   nixpkgs = {
     config.allowUnfree = true;
