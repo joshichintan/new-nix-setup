@@ -9,6 +9,7 @@ in
     # nixpkgs-unstable.legacyPackages.${pkgs.system}.beszel
 
     ## stable
+    bat
     coreutils
     diffr # Modern Unix `diff`
     difftastic # Modern Unix `diff`
@@ -17,11 +18,13 @@ in
     dua # Modern Unix `du`
     duf # Modern Unix `df`
     entr # Modern Unix `watch`
+    fzf
     gh
     go
     kubectl
     ripgrep
     terraform
     wget
+    wezterm
   ];
 }

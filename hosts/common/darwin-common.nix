@@ -35,6 +35,7 @@ in
     pkgs.nerd-fonts.fira-mono
     pkgs.nerd-fonts.hack
     pkgs.nerd-fonts.jetbrains-mono
+    pkgs.nerd-fonts.meslo-lg
   ];
 
   # pins to stable as unstable updates very often
@@ -85,9 +86,9 @@ in
     ];
     masApps = {
 
-      "Keynote" = 409183694;
-      "Numbers" = 409203825;
-      "Pages" = 409201541;
+      # "Keynote" = 409183694;
+      # "Numbers" = 409203825;
+      # "Pages" = 409201541;
     };
   };
 
@@ -160,11 +161,11 @@ in
         SortColumn = "CPUUsage";
         SortDirection = 0;
       };
-      "com.apple.Safari" = {
-        # Privacy: don’t send search queries to Apple
-        UniversalSearchEnabled = false;
-        SuppressSearchSuggestions = true;
-      };
+      # "com.apple.Safari" = {
+      #   # Privacy: don't send search queries to Apple
+      #   UniversalSearchEnabled = false;
+      #   SuppressSearchSuggestions = true;
+      # };
       "com.apple.AdLib" = {
         allowApplePersonalizedAdvertising = false;
       };
