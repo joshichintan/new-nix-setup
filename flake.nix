@@ -40,7 +40,7 @@
         mooncake = libx.mkDarwin { hostname = "mooncake"; };
 
         # work
-        chintan = libx.mkDarwin { hostname = "chintan"; };
+        chintan = libx.mkDarwin { hostname = "chintan"; username = "nix-darwin"; };
         magrathea = libx.mkDarwin { hostname = "magrathea"; };
       };
 

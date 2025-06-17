@@ -20,10 +20,7 @@ in
     entr # Modern Unix `watch`
     fzf
     gh
-    go
-    kubectl
     ripgrep
-    terraform
     wget
     wezterm
   ];
