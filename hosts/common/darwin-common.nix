@@ -76,13 +76,13 @@ in
       #"FelixKratz/formulae" #sketchybar
     ];
     casks = [
-      "nikitabobko/tap/aerospace"
+      # "nikitabobko/tap/aerospace"
       # "displaylink"
       #"docker"
       # "firefox"
       # "font-meslo-lg-nerd-font"
       # "logitech-options"
-      "slack"
+      # "slack"
       # "spotify"
     ];
     masApps = {
