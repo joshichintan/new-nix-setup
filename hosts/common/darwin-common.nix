@@ -53,8 +53,10 @@ in
   programs.nix-index.enable = true;
 
   programs.zsh = {
+    # shellInit = "SHELL_SESSIONS_DISABLE=1";
     enable = true;
-    enableCompletion = true;
+    # enableCompletion = true;
+    # dotDir = ".config/zsh";
   };
 
   homebrew = {
@@ -74,15 +76,14 @@ in
       #"FelixKratz/formulae" #sketchybar
     ];
     casks = [
-      #"nikitabobko/tap/aerospace"
+      "nikitabobko/tap/aerospace"
       # "displaylink"
       #"docker"
-      "firefox"
+      # "firefox"
       # "font-meslo-lg-nerd-font"
       # "logitech-options"
-      # "slack"
+      "slack"
       # "spotify"
-      "visual-studio-code"
     ];
     masApps = {
 

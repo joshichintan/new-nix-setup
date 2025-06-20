@@ -6,13 +6,17 @@
   # https://mipmip.github.io/home-manager-option-search
 
   # aerospace config
-  # home.file = lib.mkMerge [
-  #   (lib.mkIf pkgs.stdenv.isDarwin {
-  #     ".config/aerospace/aerospace.toml".text = builtins.readFile ./aerospace/aerospace.toml;
-  #   })
-  # ];
+  home.file.".config/aerospace/aerospace.toml".text = builtins.readFile ./aerospace/aerospace.toml;
+
+  xdg.enable = true;
+  # self.environment.etc."zshenv".text = ''
+  #     source ${config.xdg.configHome}/zsh/.zshenv
+  #   '';
 
   programs.gpg.enable = true;
+  home.sessionVariables = {
+    VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
+  };
 
   programs.direnv = {
     enable = true;
@@ -75,13 +79,23 @@
     settings = pkgs.lib.importTOML ./starship/starship.toml;
   };
 
-  programs.bash.enable = true;
-
+  home.file.".zshrc".enable = false;
+  # home.file.".zshenv".enable = false;
   programs.zsh = {
+    # initExtra = {''ZSH_SESSIONS_DIR = "${ZDOTDIR-$HOME}/sessions"''};
     enable = true;
+    dotDir = ".config/zsh";
+    history.path = "$ZDOTDIR/.zsh_history";
     enableCompletion = true;
     autosuggestion.enable = true;
     #initExtra = (builtins.readFile ../mac-dot-zshrc);
+    zplug = {
+      enable = true;
+      zplugHome = "${config.xdg.dataHome}/zplug";
+      plugins = [
+        { name = "Aloxaf/fzf-tab"; tags = [ as:plugin depth:1 ];}
+      ];
+    };
   };
 
   programs.tmux = {
@@ -106,6 +120,51 @@
 
   programs.bat.enable = true;
   programs.bat.config.theme = "Nord";
+
+  programs.wezterm = {
+    enable = true;
+    # enableTabBar = false;
+
+    colorSchemes = {
+        gruvbox_material_dark_hard = {
+          foreground = "#D4BE98";
+          background = "#1D2021";
+          cursor_bg = "#D4BE98";
+          cursor_border = "#D4BE98";
+          cursor_fg = "#1D2021";
+          selection_bg = "#D4BE98";
+          selection_fg = "#3C3836";
+          ansi = [
+            "#1d2021" "#ea6962" "#a9b665" "#d8a657"
+            "#7daea3" "#d3869b" "#89b482" "#d4be98"
+          ];
+          brights = [
+            "#eddeb5" "#ea6962" "#a9b665" "#d8a657"
+            "#7daea3" "#d3869b" "#89b482" "#d4be98"
+          ];
+        };
+      };
+
+    # Add only the minimal custom Lua config required
+    extraConfig = ''
+      local wezterm = require("wezterm")
+      local config = wezterm.config_builder()
+
+      config.enable_tab_bar = false
+      config.font = wezterm.font("MesloLGS Nerd Font")
+      config.font_size = 13
+      config.enable_tab_bar = false
+      config.window_decorations = "RESIZE"
+
+      config.colorScheme = "GruvboxHardDark"
+
+      -- macOS-specific visual polish
+      config.macos_window_background_blur = 10
+
+      return config
+    '';
+  };
+
   #programs.zsh.shellAliases.cat = "${pkgs.bat}/bin/bat";
 
   programs.neovim = {
@@ -147,6 +206,12 @@
   };
 
   programs.zoxide.enable = true;
+  programs.vscode = {
+    enable = true;
+    profiles.default.userSettings = {
+      editor.fontFamily = "MesloLGSDZ Nerd Font, monospace";
+    };
+  };
 
   programs.ssh = {
     enable = true;
