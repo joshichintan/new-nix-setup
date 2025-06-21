@@ -76,6 +76,7 @@ in
       #"FelixKratz/formulae" #sketchybar
     ];
     casks = [
+      "aerospace"
       # "nikitabobko/tap/aerospace"
       # "displaylink"
       #"docker"
@@ -84,6 +85,7 @@ in
       # "logitech-options"
       # "slack"
       # "spotify"
+      "visual-studio-code"
     ];
     masApps = {
 
