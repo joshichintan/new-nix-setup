@@ -1,21 +1,5 @@
 {
   "nodes": {
-    "aerospace-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1746359410,
-        "narHash": "sha256-hXcquTkyfKZw2p8bAE4Yh6we8xeAZbwNHhQtoK6SMU4=",
-        "owner": "nikitabobko",
-        "repo": "homebrew-tap",
-        "rev": "6714dd2c19455643dbe754e6ec8454a86b3000d1",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nikitabobko",
-        "repo": "homebrew-tap",
-        "type": "github"
-      }
-    },
     "brew-src": {
       "flake": false,
       "locked": {
@@ -189,7 +173,6 @@
     },
     "root": {
       "inputs": {
-        "aerospace-tap": "aerospace-tap",
         "home-manager": "home-manager",
         "homebrew-bundle": "homebrew-bundle",
         "homebrew-cask": "homebrew-cask",
