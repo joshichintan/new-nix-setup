@@ -9,20 +9,20 @@
   in
     inputs.nix-darwin.lib.darwinSystem {
       specialArgs = { inherit system inputs username unstablePkgs; };
-      # extraSpecialArgs = { inherit inputs; }
+      #extraSpecialArgs = { inherit inputs; }
       modules = [
         ../hosts/common/common-packages.nix
         ../hosts/common/darwin-common.nix
         customConf
         # Add nodejs overlay to fix build issues (https://github.com/NixOS/nixpkgs/issues/402079)
-        # {
-        #   nixpkgs.overlays = [
-        #     (final: prev: {
-        #       nodejs = prev.nodejs_22;
-        #       nodejs-slim = prev.nodejs-slim_22;
-        #     })
-        #   ];
-        # }
+        {
+          nixpkgs.overlays = [
+            (final: prev: {
+              nodejs = prev.nodejs_22;
+              nodejs-slim = prev.nodejs-slim_22;
+            })
+          ];
+        }
         inputs.home-manager.darwinModules.home-manager {
             networking.hostName = hostname;
             home-manager.useGlobalPkgs = true;
@@ -43,7 +43,7 @@
               "homebrew/homebrew-core" = homebrew-core;
               "homebrew/homebrew-cask" = homebrew-cask;
               "homebrew/homebrew-bundle" = homebrew-bundle;
-              # "homebrew/homebrew-aerospace" = aerospace-tap;
+              "homebrew/homebrew-aerospace" = aerospace-tap;
             };
           };
         }

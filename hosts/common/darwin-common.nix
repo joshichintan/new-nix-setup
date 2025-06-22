@@ -74,12 +74,10 @@ in
     ];
     taps = [
       #"FelixKratz/formulae" #sketchybar
-      # "nikitabobko/tap"
     ];
     casks = [
       "aerospace"
       # "nikitabobko/tap/aerospace"
-      # "/aerospace"
       # "displaylink"
       #"docker"
       # "firefox"
