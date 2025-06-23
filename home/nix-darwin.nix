@@ -14,6 +14,7 @@
   #   '';
 
   programs.gpg.enable = true;
+  programs.alacritty.enable = true;
   home.sessionVariables = {
     VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
   };
@@ -72,28 +73,56 @@
 
   programs.lf.enable = true;
 
-  programs.starship = {
-    enable = true;
-    enableZshIntegration = true;
-    enableBashIntegration = true;
-    settings = pkgs.lib.importTOML ./starship/starship.toml;
-  };
+  # programs.starship = {
+  #   enable = true;
+  #   enableZshIntegration = true;
+  #   enableBashIntegration = true;
+  #   settings = pkgs.lib.importTOML ./starship/starship.toml;
+  # };
 
   home.file.".zshrc".enable = false;
   # home.file.".zshenv".enable = false;
   programs.zsh = {
-    # initExtra = {''ZSH_SESSIONS_DIR = "${ZDOTDIR-$HOME}/sessions"''};
+
     enable = true;
     dotDir = ".config/zsh";
-    history.path = "$ZDOTDIR/.zsh_history";
-    enableCompletion = true;
+    history = {
+      path = "$ZDOTDIR/.zsh_history";
+      append = true;
+      saveNoDups = true;
+      ignoreAllDups = true;
+      findNoDups = true;
+    };
+
+    historySubstringSearch = {
+      enable = true;
+      searchUpKey = [ "^k" ];
+      searchDownKey = [ "^j" ];
+    };
+    # enableCompletion = true;
     autosuggestion.enable = true;
-    #initExtra = (builtins.readFile ../mac-dot-zshrc);
+    syntaxHighlighting.enable = true;
+    initContent = 
+    let 
+      p10kInstantPrompt = lib.mkOrder 500 ''
+      if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; 
+      then source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"; fi
+      '';
+    in
+    lib.mkMerge[ p10kInstantPrompt ];
+    plugins = [
+    {
+      name = "powerlevel10k-config";
+      src = ./p10k-config;
+      file = ".p10k.zsh";
+    }
+    ];
     zplug = {
       enable = true;
       zplugHome = "${config.xdg.dataHome}/zplug";
       plugins = [
         { name = "Aloxaf/fzf-tab"; tags = [ as:plugin depth:1 ];}
+        { name = "romkatv/powerlevel10k"; tags = [ "as:theme" "depth:1" ];}
       ];
     };
   };
@@ -115,8 +144,6 @@
 
   programs.home-manager.enable = true;
   programs.nix-index.enable = true;
-
-  programs.alacritty.enable = true;
 
   programs.bat.enable = true;
   programs.bat.config.theme = "Nord";

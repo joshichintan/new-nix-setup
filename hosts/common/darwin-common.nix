@@ -113,7 +113,7 @@ in
     NSGlobalDomain.PMPrintingExpandedStateForPrint2 = true;
     NSGlobalDomain.NSDocumentSaveNewDocumentsToCloud = false;
     NSGlobalDomain.ApplePressAndHoldEnabled = false;
-    NSGlobalDomain.InitialKeyRepeat = 25;
+    NSGlobalDomain.InitialKeyRepeat = 15;
     NSGlobalDomain.KeyRepeat = 2;
     NSGlobalDomain."com.apple.mouse.tapBehavior" = 1;
     NSGlobalDomain.NSWindowShouldDragOnGesture = true;
