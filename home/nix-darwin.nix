@@ -136,7 +136,7 @@
     plugins = with pkgs.tmuxPlugins; [
       {
         plugin = gruvbox;
-        extraConfig = "set -g @gruvbox 'dark'";
+        # extraConfig = "set -g @gruvbox 'dark'";
       }
       vim-tmux-navigator
       {
@@ -218,6 +218,13 @@
         plugin = gruvbox-nvim;
         config = "colorscheme gruvbox";
       }
+
+      # set opt.termguicolors = false in home config for nvim
+      # to enable colorscheme
+      # {
+      #   plugin = gruvbox-material;
+      #   config = "colorscheme gruvbox-material";
+      # }
 
       ## telescope
       {
