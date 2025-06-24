@@ -132,13 +132,22 @@
     #keyMode = "vi";
     clock24 = true;
     historyLimit = 10000;
+    terminal = "tmux-256color";
     plugins = with pkgs.tmuxPlugins; [
-      gruvbox
+      {
+        plugin = gruvbox;
+        extraConfig = "set -g @gruvbox 'dark'";
+      }
       vim-tmux-navigator
+      {
+        plugin = tmux-sessionx;
+      }
     ];
-    extraConfig = ''
+    
+    extraConfig = '' 
       new-session -s main
       bind-key -n C-a send-prefix
+      bind-key o run-shell "tmux-sessionx"
     '';
   };
 
@@ -205,16 +214,9 @@
       lualine-nvim
       nvim-web-devicons
       vim-tmux-navigator
-
-      ## with config
-      # {
-      #   plugin = gruvbox-nvim;
-      #   config = "colorscheme gruvbox";
-      # }
-
       {
-        plugin = catppuccin-nvim;
-        config = "colorscheme catppuccin";
+        plugin = gruvbox-nvim;
+        config = "colorscheme gruvbox";
       }
 
       ## telescope
