@@ -14,15 +14,9 @@
         ../hosts/common/common-packages.nix
         ../hosts/common/darwin-common.nix
         customConf
-        # Add nodejs overlay to fix build issues (https://github.com/NixOS/nixpkgs/issues/402079)
-        {
-          nixpkgs.overlays = [
-            (final: prev: {
-              nodejs = prev.nodejs_22;
-              nodejs-slim = prev.nodejs-slim_22;
-            })
-          ];
-        }
+        ({ config, ... }: {
+          homebrew.taps = builtins.attrNames config.nix-homebrew.taps;
+        })
         inputs.home-manager.darwinModules.home-manager {
             networking.hostName = hostname;
             home-manager.useGlobalPkgs = true;
