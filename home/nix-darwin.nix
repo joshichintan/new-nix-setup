@@ -216,15 +216,15 @@
       vim-tmux-navigator
       {
         plugin = gruvbox-nvim;
-        config = "colorscheme gruvbox";
+        # config = "colorscheme gruvbox";
       }
 
       # set opt.termguicolors = false in home config for nvim
       # to enable colorscheme
-      # {
-      #   plugin = gruvbox-material;
-      #   config = "colorscheme gruvbox-material";
-      # }
+      {
+        plugin = gruvbox-material;
+        config = "colorscheme gruvbox-material";
+      }
 
       ## telescope
       {
@@ -236,6 +236,15 @@
 
     ];
     extraLuaConfig = ''
+      -- Terminal-specific colorscheme and termguicolors
+      if vim.env.TERM_PROGRAM == "Apple_Terminal" then
+        vim.opt.termguicolors = false
+        vim.cmd("colorscheme gruvbox-material")
+      else
+        vim.opt.termguicolors = true
+        vim.cmd("colorscheme gruvbox")
+      end
+
       ${builtins.readFile ./nvim/options.lua}
       ${builtins.readFile ./nvim/keymap.lua}
     '';
