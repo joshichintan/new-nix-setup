@@ -73,10 +73,10 @@ in {
     enable = true;
     onActivation = {
       cleanup = "zap";
-      autoUpdate = true;
-      upgrade = true;
+      # autoUpdate = true; # enabling this makes brew update itself
+      upgrade = true; # enabling this let's brew updates packages on every time you run brew
     };
-    global.autoUpdate = true;
+    #global.autoUpdate = true; # enabling this makes brew update itself
 
     brews = [
       "bitwarden-cli"
