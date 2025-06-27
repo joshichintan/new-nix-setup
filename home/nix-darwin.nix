@@ -1,5 +1,11 @@
-{ config, inputs, pkgs, lib, unstablePkgs, ... }:
 {
+  config,
+  inputs,
+  pkgs,
+  lib,
+  unstablePkgs,
+  ...
+}: {
   home.stateVersion = "23.11";
 
   # list of programs
@@ -83,7 +89,6 @@
   home.file.".zshrc".enable = false;
   # home.file.".zshenv".enable = false;
   programs.zsh = {
-
     enable = true;
     dotDir = ".config/zsh";
     history = {
@@ -96,33 +101,38 @@
 
     historySubstringSearch = {
       enable = true;
-      searchUpKey = [ "^k" ];
-      searchDownKey = [ "^j" ];
+      searchUpKey = ["^k"];
+      searchDownKey = ["^j"];
     };
     # enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-    initContent = 
-    let 
+    initContent = let
       p10kInstantPrompt = lib.mkOrder 500 ''
-      if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; 
-      then source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"; fi
+        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]];
+        then source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"; fi
       '';
     in
-    lib.mkMerge[ p10kInstantPrompt ];
+      lib.mkMerge [p10kInstantPrompt];
     plugins = [
-    {
-      name = "powerlevel10k-config";
-      src = ./p10k-config;
-      file = ".p10k.zsh";
-    }
+      {
+        name = "powerlevel10k-config";
+        src = ./p10k-config;
+        file = ".p10k.zsh";
+      }
     ];
     zplug = {
       enable = true;
       zplugHome = "${config.xdg.dataHome}/zplug";
       plugins = [
-        { name = "Aloxaf/fzf-tab"; tags = [ as:plugin depth:1 ];}
-        { name = "romkatv/powerlevel10k"; tags = [ "as:theme" "depth:1" ];}
+        {
+          name = "Aloxaf/fzf-tab";
+          tags = [as:plugin depth:1];
+        }
+        {
+          name = "romkatv/powerlevel10k";
+          tags = ["as:theme" "depth:1"];
+        }
       ];
     };
   };
@@ -143,8 +153,8 @@
         plugin = tmux-sessionx;
       }
     ];
-    
-    extraConfig = '' 
+
+    extraConfig = ''
       new-session -s main
       bind-key -n C-a send-prefix
       bind-key o run-shell "tmux-sessionx"
@@ -162,24 +172,36 @@
     # enableTabBar = false;
 
     colorSchemes = {
-        gruvbox_material_dark_hard = {
-          foreground = "#D4BE98";
-          background = "#1D2021";
-          cursor_bg = "#D4BE98";
-          cursor_border = "#D4BE98";
-          cursor_fg = "#1D2021";
-          selection_bg = "#D4BE98";
-          selection_fg = "#3C3836";
-          ansi = [
-            "#1d2021" "#ea6962" "#a9b665" "#d8a657"
-            "#7daea3" "#d3869b" "#89b482" "#d4be98"
-          ];
-          brights = [
-            "#eddeb5" "#ea6962" "#a9b665" "#d8a657"
-            "#7daea3" "#d3869b" "#89b482" "#d4be98"
-          ];
-        };
+      gruvbox_material_dark_hard = {
+        foreground = "#D4BE98";
+        background = "#1D2021";
+        cursor_bg = "#D4BE98";
+        cursor_border = "#D4BE98";
+        cursor_fg = "#1D2021";
+        selection_bg = "#D4BE98";
+        selection_fg = "#3C3836";
+        ansi = [
+          "#1d2021"
+          "#ea6962"
+          "#a9b665"
+          "#d8a657"
+          "#7daea3"
+          "#d3869b"
+          "#89b482"
+          "#d4be98"
+        ];
+        brights = [
+          "#eddeb5"
+          "#ea6962"
+          "#a9b665"
+          "#d8a657"
+          "#7daea3"
+          "#d3869b"
+          "#89b482"
+          "#d4be98"
+        ];
       };
+    };
 
     # Add only the minimal custom Lua config required
     extraConfig = ''
@@ -223,7 +245,7 @@
       # to enable colorscheme
       {
         plugin = gruvbox-material;
-        config = "colorscheme gruvbox-material";
+        # config = "colorscheme gruvbox-material";
       }
 
       ## telescope
@@ -233,7 +255,6 @@
         config = builtins.readFile ./nvim/plugins/telescope.lua;
       }
       telescope-fzf-native-nvim
-
     ];
     extraLuaConfig = ''
       -- Terminal-specific colorscheme and termguicolors
@@ -261,7 +282,7 @@
   programs.ssh = {
     enable = true;
     extraConfig = ''
-  StrictHostKeyChecking no
+      StrictHostKeyChecking no
     '';
     matchBlocks = {
       # ~/.ssh/config

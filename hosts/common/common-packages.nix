@@ -1,11 +1,14 @@
-{ inputs, pkgs, unstablePkgs, ... }:
-let
-  inherit (inputs) nixpkgs nixpkgs-unstable;
-in
 {
+  inputs,
+  pkgs,
+  unstablePkgs,
+  ...
+}: let
+  inherit (inputs) nixpkgs nixpkgs-unstable;
+in {
   nixpkgs.config.allowUnfree = true;
   environment.systemPackages = with pkgs; [
-    # unused but here just incase I forget how to install it 
+    # unused but here just incase I forget how to install it
     # nixpkgs-unstable.legacyPackages.${pkgs.system}.beszel
 
     ## stable
