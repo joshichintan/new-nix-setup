@@ -9,6 +9,7 @@ in {
   inherit
     (helpers)
     mkDarwin
+    mkHome
     #mkNixos
     ;
 }

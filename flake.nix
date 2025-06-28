@@ -68,19 +68,16 @@
           hostname = "chintan";
           username = "nix-darwin";
         };
-
       };
 
       # Standalone Home Manager configurations
       homeConfigurations = {
-
-        # Work configuration  
+        # Work configuration
         "nix-darwin@chintan" = libx.mkHome {
           username = "nix-darwin";
           homeDirectory = "/Users/nix-darwin";
-          modules = [ ./home/nix-darwin.nix ];
+          modules = [./home/nix-darwin.nix];
         };
-
       };
     };
 }

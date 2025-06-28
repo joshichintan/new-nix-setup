@@ -27,16 +27,16 @@
         ({config, ...}: {
           homebrew.taps = builtins.attrNames config.nix-homebrew.taps;
         })
-        inputs.home-manager.darwinModules.home-manager
-        {
-          networking.hostName = hostname;
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          #home-manager.sharedModules = [ inputs.nixvim.homeManagerModules.nixvim ];
-          home-manager.users.${username} = {imports = [./../home/${username}.nix];};
-        }
+        # inputs.home-manager.darwinModules.home-manager
+        # {
+        #   networking.hostName = hostname;
+        #   home-manager.useGlobalPkgs = true;
+        #   home-manager.useUserPackages = true;
+        #   home-manager.backupFileExtension = "backup";
+        #   home-manager.extraSpecialArgs = {inherit inputs;};
+        #   #home-manager.sharedModules = [ inputs.nixvim.homeManagerModules.nixvim ];
+        #   home-manager.users.${username} = {imports = [./../home/${username}.nix];};
+        # }
         inputs.nix-homebrew.darwinModules.nix-homebrew
         {
           nix-homebrew = {
@@ -71,14 +71,15 @@
   in
     inputs.home-manager.lib.homeManagerConfiguration {
       pkgs = unstablePkgs;
-      extraSpecialArgs = extraSpecialArgs // { inherit inputs unstablePkgs; };
-      modules = modules ++ [
-        {
-          home = {
-            inherit username homeDirectory;
-            stateVersion = stateVersion;
-          };
-        }
-      ];
+      extraSpecialArgs = extraSpecialArgs // {inherit inputs unstablePkgs;};
+      modules =
+        modules
+        ++ [
+          {
+            home = {
+              inherit username homeDirectory;
+            };
+          }
+        ];
     };
 }
