@@ -52,7 +52,7 @@
     # vscode-server.url = "github:nix-community/nixos-vscode-server";
   };
 
-  outputs = {...} @ inputs:
+  outputs = {...} @ inputs: { username, ... }:
     with inputs; let
       inherit (self) outputs;
 
@@ -73,7 +73,7 @@
       homeConfigurations = {
         # Work configuration
         "chintan" = libx.mkHome {
-          username = "nix-darwin";
+          inherit username;
         };
       };
     };
