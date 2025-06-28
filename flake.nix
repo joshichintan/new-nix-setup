@@ -72,8 +72,8 @@
       # Standalone Home Manager configurations
       homeConfigurations = {
         # Work configuration
-        "chintan" = libx.mkHome {
-          username = "chintan";
+        "nix-darwin" = libx.mkHome {
+          username = "nix-darwin";
         };
       };
     };
