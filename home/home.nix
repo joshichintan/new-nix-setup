@@ -17,17 +17,18 @@
 
   # aerospace config
   home.file.".config/aerospace/aerospace.toml".text = builtins.readFile ./aerospace/aerospace.toml;
-
+  home.file.".zshrc".enable = false;
   xdg.enable = true;
+
+  home.sessionVariables = {
+    VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
+  };
   # self.environment.etc."zshenv".text = ''
   #     source ${config.xdg.configHome}/zsh/.zshenv
   #   '';
 
   programs.gpg.enable = true;
   programs.alacritty.enable = true;
-  home.sessionVariables = {
-    VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
-  };
 
   programs.direnv = {
     enable = true;
@@ -90,7 +91,6 @@
   #   settings = pkgs.lib.importTOML ./starship/starship.toml;
   # };
 
-  home.file.".zshrc".enable = false;
   # home.file.".zshenv".enable = false;
   programs.zsh = {
     enable = true;
