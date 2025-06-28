@@ -58,4 +58,27 @@
       #     (import ./../hosts/darwin/${hostname}/default.nix)
       #   ];
     };
+
+  mkHome = {
+    username,
+    homeDirectory,
+    system ? "aarch64-darwin",
+    modules ? [],
+    extraSpecialArgs ? {},
+  }: let
+    inherit (inputs.nixpkgs) lib;
+    unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${system};
+  in
+    inputs.home-manager.lib.homeManagerConfiguration {
+      pkgs = unstablePkgs;
+      extraSpecialArgs = extraSpecialArgs // { inherit inputs unstablePkgs; };
+      modules = modules ++ [
+        {
+          home = {
+            inherit username homeDirectory;
+            stateVersion = stateVersion;
+          };
+        }
+      ];
+    };
 }

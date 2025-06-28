@@ -41,6 +41,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # nvf - Modern Neovim configuration framework
+    nvf = {
+      url = "github:notashelf/nvf";
+      inputs.nixpkgs.follows = "nixpkgs-darwin";
+    };
+
     # disko.url = "github:nix-community/disko";
     # disko.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -56,18 +62,25 @@
     in {
       darwinConfigurations = {
         # personal
-        slartibartfast = libx.mkDarwin {hostname = "slartibartfast";};
-        nauvis = libx.mkDarwin {hostname = "nauvis";};
-        mac-studio = libx.mkDarwin {hostname = "mac-studio";};
-        mac-mini = libx.mkDarwin {hostname = "mac-mini";};
-        mooncake = libx.mkDarwin {hostname = "mooncake";};
 
         # work
         chintan = libx.mkDarwin {
           hostname = "chintan";
           username = "nix-darwin";
         };
-        magrathea = libx.mkDarwin {hostname = "magrathea";};
+
+      };
+
+      # Standalone Home Manager configurations
+      homeConfigurations = {
+
+        # Work configuration  
+        "nix-darwin@chintan" = libx.mkHome {
+          username = "nix-darwin";
+          homeDirectory = "/Users/nix-darwin";
+          modules = [ ./home/nix-darwin.nix ];
+        };
+
       };
     };
 }

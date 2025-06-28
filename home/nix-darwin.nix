@@ -223,55 +223,48 @@
     '';
   };
 
-  #programs.zsh.shellAliases.cat = "${pkgs.bat}/bin/bat";
-
-  programs.neovim = {
-    enable = true;
-    viAlias = true;
-    vimAlias = true;
-    vimdiffAlias = true;
-    plugins = with pkgs.vimPlugins; [
-      ## regular
-      comment-nvim
-      lualine-nvim
-      nvim-web-devicons
-      vim-tmux-navigator
-      {
-        plugin = gruvbox-nvim;
-        # config = "colorscheme gruvbox";
-      }
-
-      # set opt.termguicolors = false in home config for nvim
-      # to enable colorscheme
-      {
-        plugin = gruvbox-material;
-        # config = "colorscheme gruvbox-material";
-      }
-
-      ## telescope
-      {
-        plugin = telescope-nvim;
-        type = "lua";
-        config = builtins.readFile ./nvim/plugins/telescope.lua;
-      }
-      telescope-fzf-native-nvim
-    ];
-    extraLuaConfig = ''
-      -- Terminal-specific colorscheme and termguicolors
-      if vim.env.TERM_PROGRAM == "Apple_Terminal" then
-        vim.opt.termguicolors = false
-        vim.cmd("colorscheme gruvbox-material")
-      else
-        vim.opt.termguicolors = true
-        vim.cmd("colorscheme gruvbox")
-      end
-
-      ${builtins.readFile ./nvim/options.lua}
-      ${builtins.readFile ./nvim/keymap.lua}
-    '';
-  };
+  #programs.zsh.shellAlias.cat = "${pkgs.bat}/bin/bat";
 
   programs.zoxide.enable = true;
+  
+  # Standalone nix-homebrew configuration
+  programs.nix-homebrew = {
+    enable = true;
+    enableRosetta = true;
+    autoMigrate = true;
+    mutableTaps = true;
+    user = "nix-darwin";
+    taps = with inputs; {
+      "homebrew/homebrew-core" = homebrew-core;
+      "homebrew/homebrew-cask" = homebrew-cask;
+      "homebrew/homebrew-bundle" = homebrew-bundle;
+      "homebrew/homebrew-aerospace" = aerospace-tap;
+    };
+  };
+
+  # Nix command aliases for easier usage
+  programs.zsh.shellAliases = {
+    # Home Manager aliases (dynamic user/hostname detection)
+    hm = "nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
+    hm-build = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
+    hm-check = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run";
+    
+    # nix-darwin aliases (dynamic hostname detection)
+    darwin = "nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
+    darwin-build = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
+    darwin-check = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system --dry-run";
+    
+    # General Nix aliases
+    nix-update = "nix flake update";
+    nix-gc = "nix-store --gc";
+    nix-clean = "nix-collect-garbage -d";
+    
+    # Quick rebuild aliases
+    rebuild = "darwin && hm";  # Rebuild both system and home
+    rebuild-home = "hm";       # Rebuild only home
+    rebuild-system = "darwin"; # Rebuild only system
+  };
+
   programs.vscode = {
     enable = true;
     profiles.default.userSettings = {
