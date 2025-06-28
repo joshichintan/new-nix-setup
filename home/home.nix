@@ -142,9 +142,9 @@
     };
     shellAliases = {
       # Home Manager aliases (dynamic user/hostname detection)
-      hm = "nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
-      hm-build = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
-      hm-check = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run";
+      hm = "nix run .#homeConfigurations.defaultSystem.activationPackage";
+      hm-build = "nix build .#homeConfigurations.defaultSystem.activationPackage";
+      hm-check = "nix build .#homeConfigurations.defaultSystem.activationPackage --dry-run";
 
       # nix-darwin aliases (dynamic hostname detection)
       darwin = "nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
