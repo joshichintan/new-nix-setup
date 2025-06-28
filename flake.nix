@@ -72,9 +72,10 @@
       # Standalone Home Manager configurations
       homeConfigurations = {
         # Work configuration
-        "defaultSystem" = libx.mkHome {
+        "nix-darwin@chintan" = libx.mkHome {
           username = "nix-darwin";
           homeDirectory = "/Users/nix-darwin";
+          modules = [./home/nix-darwin.nix];
         };
       };
     };
