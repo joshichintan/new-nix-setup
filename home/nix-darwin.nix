@@ -298,4 +298,80 @@
       # };
     };
   };
+
+  # nvf - Modern Neovim configuration
+  programs.neovim = {
+    enable = true;
+    viAlias = true;
+    vimAlias = true;
+    vimdiffAlias = true;
+    
+    # Use nvf for Neovim configuration
+    package = inputs.nvf.packages.aarch64-darwin.nvim;
+    
+    # nvf configuration
+    extraConfig = ''
+      ${inputs.nvf.lib.nixvimConfig {
+        inherit pkgs;
+        modules = [
+          # Terminal detection for colorscheme
+          {
+            config = {
+              colorschemes.gruvbox.enable = true;
+              colorschemes.gruvbox.settings = {
+                transparent_mode = true;
+              };
+            };
+          }
+          
+          # Basic editor settings
+          {
+            config = {
+              editor = {
+                tabWidth = 2;
+                shiftWidth = 2;
+                expandTab = true;
+                number = true;
+                relativenumber = true;
+                scrolloff = 8;
+                sidescrolloff = 8;
+                wrap = false;
+                cursorline = true;
+                colorcolumn = "80";
+              };
+            };
+          }
+          
+          # LSP and completion
+          {
+            config = {
+              lsp = {
+                enable = true;
+                servers = {
+                  lua-ls.enable = true;
+                  nil-ls.enable = true;
+                  rust-analyzer.enable = true;
+                };
+              };
+              
+              completion = {
+                enable = true;
+                type = "nvim-cmp";
+              };
+            };
+          }
+          
+          # File tree and fuzzy finder
+          {
+            config = {
+              plugins = {
+                nvim-tree.enable = true;
+                telescope.enable = true;
+              };
+            };
+          }
+        ];
+      }}
+    '';
+  };
 }
