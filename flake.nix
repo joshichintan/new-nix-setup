@@ -52,7 +52,7 @@
     # vscode-server.url = "github:nix-community/nixos-vscode-server";
   };
 
-  outputs = {...} @ inputs: { username, ... }:
+  outputs = {...} @ inputs:
     with inputs; let
       inherit (self) outputs;
 
@@ -72,16 +72,8 @@
       # Standalone Home Manager configurations
       homeConfigurations = {
         # Work configuration
-        "nix-darwin@chintan" = libx.mkHome {
-          inherit username;
-          homeDirectory = "/Users/${username}";
-          modules = [ ./home/home.nix ];
-        };
-
         "defaultSystem" = libx.mkHome {
-          inherit username;
-          homeDirectory = "/Users/${username}";
-          modules = [ ./home/home.nix ];
+          username = builtins.getEnv "USER";
         };
       };
     };
