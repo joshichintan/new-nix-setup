@@ -139,6 +139,27 @@
         }
       ];
     };
+    shellAliases = {
+      # Home Manager aliases (dynamic user/hostname detection)
+      hm = "nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
+      hm-build = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
+      hm-check = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run";
+
+      # nix-darwin aliases (dynamic hostname detection)
+      darwin = "nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
+      darwin-build = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
+      darwin-check = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system --dry-run";
+
+      # General Nix aliases
+      nix-update = "nix flake update";
+      nix-gc = "nix-store --gc";
+      nix-clean = "nix-collect-garbage -d";
+
+      # Quick rebuild aliases
+      rebuild = "darwin && hm"; # Rebuild both system and home
+      rebuild-home = "hm"; # Rebuild only home
+      rebuild-system = "darwin"; # Rebuild only system
+    };
   };
 
   programs.tmux = {
@@ -230,29 +251,6 @@
   #programs.zsh.shellAlias.cat = "${pkgs.bat}/bin/bat";
 
   programs.zoxide.enable = true;
-
-  # Nix command aliases for easier usage
-  programs.zsh.shellAliases = {
-    # Home Manager aliases (dynamic user/hostname detection)
-    hm = "nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
-    hm-build = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
-    hm-check = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run";
-
-    # nix-darwin aliases (dynamic hostname detection)
-    darwin = "nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
-    darwin-build = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
-    darwin-check = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system --dry-run";
-
-    # General Nix aliases
-    nix-update = "nix flake update";
-    nix-gc = "nix-store --gc";
-    nix-clean = "nix-collect-garbage -d";
-
-    # Quick rebuild aliases
-    rebuild = "darwin && hm"; # Rebuild both system and home
-    rebuild-home = "hm"; # Rebuild only home
-    rebuild-system = "darwin"; # Rebuild only system
-  };
 
   programs.vscode = {
     enable = true;
