@@ -303,73 +303,44 @@
     viAlias = true;
     vimAlias = true;
     vimdiffAlias = true;
-    
-    # Use nvf for Neovim configuration
-    package = inputs.nvf.packages.aarch64-darwin.nvim;
-    
-    # nvf configuration
-    extraConfig = ''
-      ${inputs.nvf.lib.nixvimConfig {
-        inherit pkgs;
-        modules = [
-          # Terminal detection for colorscheme
-          {
-            config = {
-              colorschemes.gruvbox.enable = true;
-              colorschemes.gruvbox.settings = {
-                transparent_mode = true;
-              };
-            };
-          }
-          
-          # Basic editor settings
-          {
-            config = {
-              editor = {
-                tabWidth = 2;
-                shiftWidth = 2;
-                expandTab = true;
-                number = true;
-                relativenumber = true;
-                scrolloff = 8;
-                sidescrolloff = 8;
-                wrap = false;
-                cursorline = true;
-                colorcolumn = "80";
-              };
-            };
-          }
-          
-          # LSP and completion
-          {
-            config = {
-              lsp = {
-                enable = true;
-                servers = {
-                  lua-ls.enable = true;
-                  nil-ls.enable = true;
-                  rust-analyzer.enable = true;
-                };
-              };
-              
-              completion = {
-                enable = true;
-                type = "nvim-cmp";
-              };
-            };
-          }
-          
-          # File tree and fuzzy finder
-          {
-            config = {
-              plugins = {
-                nvim-tree.enable = true;
-                telescope.enable = true;
-              };
-            };
-          }
-        ];
-      }}
+    plugins = with pkgs.vimPlugins; [
+      ## regular
+      comment-nvim
+      lualine-nvim
+      nvim-web-devicons
+      vim-tmux-navigator
+      {
+        plugin = gruvbox-nvim;
+        # config = "colorscheme gruvbox";
+      }
+
+      # set opt.termguicolors = false in home config for nvim
+      # to enable colorscheme
+      {
+        plugin = gruvbox-material;
+        config = "colorscheme gruvbox-material";
+      }
+
+      ## telescope
+      {
+        plugin = telescope-nvim;
+        type = "lua";
+        config = builtins.readFile ./nvim/plugins/telescope.lua;
+      }
+      telescope-fzf-native-nvim
+    ];
+    extraLuaConfig = ''
+      -- Terminal-specific colorscheme and termguicolors
+      if vim.env.TERM_PROGRAM == "Apple_Terminal" then
+        vim.opt.termguicolors = false
+        vim.cmd("colorscheme gruvbox-material")
+      else
+        vim.opt.termguicolors = true
+        vim.cmd("colorscheme gruvbox")
+      end
+
+      ${builtins.readFile ./nvim/options.lua}
+      ${builtins.readFile ./nvim/keymap.lua}
     '';
   };
 }
