@@ -68,7 +68,7 @@
   in
     inputs.home-manager.lib.homeManagerConfiguration {
       pkgs = unstablePkgs;
-      extraSpecialArgs = {inherit inputs unstablePkgs;};
+      extraSpecialArgs = { inherit inputs unstablePkgs username; };
       modules = [
         ./../home/nix-darwin.nix
       ];
