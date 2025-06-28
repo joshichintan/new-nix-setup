@@ -7,6 +7,7 @@
   ...
 }: {
   home.stateVersion = "23.11";
+  homeDirectory = "/Users/${username}";
 
   nixpkgs = {
     config.allowUnfree = true;

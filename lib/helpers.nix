@@ -62,7 +62,7 @@
   mkHome = {
     username,
     homeDirectory,
-    system ? "aarch64-darwin",
+    system ? builtins.currentSystem,
   }: let
     inherit (inputs.nixpkgs) lib;
     unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${system};
@@ -74,7 +74,7 @@
         ./../home/home.nix
         {
           home = {
-            inherit username homeDirectory;
+            inherit username;
             stateVersion = stateVersion;
           };
         }

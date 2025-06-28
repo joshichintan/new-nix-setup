@@ -73,8 +73,7 @@
       homeConfigurations = {
         # Work configuration
         "defaultSystem" = libx.mkHome {
-          username = "nix-darwin";
-          homeDirectory = "/Users/nix-darwin";
+          username = builtins.getEnv "USER";
         };
       };
     };
