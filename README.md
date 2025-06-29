@@ -9,8 +9,38 @@ This setup provides:
 - **Home Manager** in standalone mode for user configuration
 - **nvf** for modern Neovim configuration
 - **nix-homebrew** for package management
+- **Automated setup wizard** for easy installation
 
 ## Quick Start
+
+### Option 1: Automated Setup (Recommended)
+
+Use the setup wizard for automatic installation:
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd new-nix-setup
+
+# Make wizard executable
+chmod +x wizard.sh
+
+# Test run (see what it would do)
+./wizard.sh --dry-run
+
+# Actual installation
+./wizard.sh
+```
+
+The wizard will:
+- Detect if you have a fresh or existing installation
+- Install Xcode Command Line Tools (no popups)
+- Install Rosetta 2 on Apple Silicon Macs
+- Install Nix with flakes enabled
+- Generate/update flake.nix with your username and hostname
+- Optionally run the build commands automatically
+
+### Option 2: Manual Setup
 
 ### Prerequisites
 
@@ -29,13 +59,13 @@ This setup provides:
 2. **Apply system configuration:**
    ```bash
    # Build and switch to nix-darwin configuration
-   nix run .#darwinConfigurations.chintan.system
+   nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
    ```
 
 3. **Apply Home Manager configuration:**
    ```bash
    # Apply user configuration (standalone)
-   nix run .#homeConfigurations.nix-darwin@chintan.activationPackage
+   nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
    ```
 
 ## Home Manager Standalone Mode
@@ -241,4 +271,72 @@ nvim --headless -c "checkhealth"
 # Reset Neovim state
 rm -rf ~/.local/share/nvim
 rm -rf ~/.cache/nvim
+```
+
+## Setup Wizard
+
+The `wizard.sh` script provides automated setup for both fresh and existing installations.
+
+### Features
+
+- **Smart Detection**: Automatically detects if nix-darwin or Home Manager are already installed
+- **Fresh Installation**: Handles complete setup from scratch
+- **Existing Installation**: Updates flake.nix with current username/hostname
+- **Dry Run Mode**: Test what the wizard would do without making changes
+- **Interactive**: Asks if you want to run build commands automatically
+
+### Wizard Modes
+
+#### Fresh Installation
+For new machines without Nix:
+1. Installs Xcode Command Line Tools (waits for completion)
+2. Installs Rosetta 2 on Apple Silicon Macs
+3. Installs Nix with flakes enabled
+4. Generates flake.nix with detected username/hostname
+5. Optionally runs build commands
+
+#### Existing Installation
+For machines with Nix already installed:
+1. Detects current username and hostname
+2. Updates flake.nix with new configuration blocks
+3. Skips if configuration already exists
+
+### Usage
+
+```bash
+# Test run (no changes made)
+./wizard.sh --dry-run
+
+# Fresh installation
+./wizard.sh
+
+# The wizard will ask:
+# "Do you want to run these commands now? (y/N):"
+# - y: Runs nix flake update, darwin build, and home build
+# - n: Shows commands to run manually
+```
+
+### What the Wizard Detects
+
+- **Username**: `$(whoami)` - your current username
+- **Hostname**: `$(hostname | cut -d'.' -f1)` - your machine name
+- **System**: `aarch64-darwin` (Apple Silicon) or `x86_64-darwin` (Intel)
+- **Existing installations**: Checks for nix-darwin and Home Manager
+
+### Generated Configuration
+
+The wizard creates configurations like:
+```nix
+darwinConfigurations = {
+  yourhostname = libx.mkDarwin {
+    hostname = "yourhostname";
+    username = "yourusername";
+  };
+};
+
+homeConfigurations = {
+  "yourusername@yourhostname" = libx.mkHome {
+    username = "yourusername";
+  };
+};
 ```

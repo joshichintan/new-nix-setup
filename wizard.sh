@@ -24,6 +24,10 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+print_dry_run() {
+    echo -e "${YELLOW}[DRY RUN]${NC} $1"
+}
+
 # Function to check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -50,6 +54,11 @@ install_xcode_tools() {
     # Check if already installed
     if xcode-select -p >/dev/null 2>&1; then
         print_success "Xcode Command Line Tools already installed"
+        return 0
+    fi
+    
+    if [[ $DRY_RUN == true ]]; then
+        print_dry_run "Would install Xcode Command Line Tools and wait for completion"
         return 0
     fi
     
@@ -89,6 +98,11 @@ install_rosetta() {
             return 0
         fi
         
+        if [[ $DRY_RUN == true ]]; then
+            print_dry_run "Would install Rosetta 2 using softwareupdate --install-rosetta --agree-to-license"
+            return 0
+        fi
+        
         print_status "Installing Rosetta 2..."
         /usr/sbin/softwareupdate --install-rosetta --agree-to-license
         
@@ -107,6 +121,11 @@ install_rosetta() {
 install_nix() {
     if command_exists nix; then
         print_success "Nix already installed"
+        return 0
+    fi
+    
+    if [[ $DRY_RUN == true ]]; then
+        print_dry_run "Would install Nix using official installer and enable flakes"
         return 0
     fi
     
@@ -164,15 +183,6 @@ generate_flake() {
     print_status "  Hostname: $hostname"
     print_status "  System: $system"
     
-    if [[ $DRY_RUN == true ]]; then
-        if [[ -f flake.nix ]]; then
-            print_dry_run "Would add new configuration block to existing flake.nix with username=$username, hostname=$hostname"
-        else
-            print_dry_run "Would create new flake.nix with username=$username, hostname=$hostname, system=$system"
-        fi
-        return 0
-    fi
-    
     if [[ -f flake.nix ]]; then
         print_status "flake.nix exists, checking for existing configuration..."
         
@@ -181,13 +191,17 @@ generate_flake() {
             print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
         else
             print_status "Adding new darwinConfigurations entry..."
-            # Add new entry inside darwinConfigurations block
-            sed -i.bak "/darwinConfigurations = {/a\\
+            if [[ $DRY_RUN == true ]]; then
+                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
+            else
+                # Add new entry inside darwinConfigurations block
+                sed -i.bak "/darwinConfigurations = {/a\\
         $hostname = libx.mkDarwin {\\
           hostname = \"$hostname\";\\
           username = \"$username\";\\
         };
 " flake.nix
+            fi
         fi
         
         # Check if homeConfigurations already exists for this username@hostname
@@ -195,19 +209,29 @@ generate_flake() {
             print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
         else
             print_status "Adding new homeConfigurations entry..."
-            # Add new entry inside homeConfigurations block
-            sed -i.bak "/homeConfigurations = {/a\\
+            if [[ $DRY_RUN == true ]]; then
+                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
+            else
+                # Add new entry inside homeConfigurations block
+                sed -i.bak "/homeConfigurations = {/a\\
         \"$username@$hostname\" = libx.mkHome {\\
           username = \"$username\";\\
         };
 " flake.nix
+            fi
         fi
         
-        print_success "Configuration check completed"
+        if [[ $DRY_RUN == true ]]; then
+            print_dry_run "Would update existing flake.nix"
+        else
+            print_success "Configuration check completed"
+        fi
     else
         print_status "Creating new flake.nix..."
-        
-        cat > flake.nix << EOF
+        if [[ $DRY_RUN == true ]]; then
+            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
+        else
+            cat > flake.nix << EOF
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -278,8 +302,8 @@ generate_flake() {
     };
 }
 EOF
-        
-        print_success "flake.nix created successfully"
+            print_success "flake.nix created successfully"
+        fi
     fi
 }
 
@@ -338,15 +362,31 @@ main() {
                 print_status "Running commands..."
                 
                 print_status "1. Updating flake..."
-                nix flake update
+                if [[ $DRY_RUN == true ]]; then
+                    print_dry_run "Would run: nix flake update"
+                else
+                    nix flake update
+                fi
                 
                 print_status "2. Building darwin configuration..."
-                nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+                if [[ $DRY_RUN == true ]]; then
+                    print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+                else
+                    nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+                fi
                 
                 print_status "3. Building home configuration..."
-                nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+                if [[ $DRY_RUN == true ]]; then
+                    print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+                else
+                    nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+                fi
                 
-                print_success "All commands completed!"
+                if [[ $DRY_RUN == true ]]; then
+                    print_dry_run "Would complete all build commands"
+                else
+                    print_success "All commands completed!"
+                fi
             else
                 print_status "Commands not run. You can run them manually:"
                 print_status "  nix flake update"
