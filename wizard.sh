@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Initialize DRY_RUN variable
+# Initialize variables
 DRY_RUN=false
+SKIP_INSTALL=false
+INTERACTIVE=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -335,33 +337,130 @@ generate_flake() {
     fi
 }
 
+# Function to ask user for installation preference
+ask_installation_preference() {
+    echo
+    print_status "What would you like to do?"
+    echo "  1) Install everything automatically (recommended)"
+    echo "  2) Interactive mode (ask at each step)"
+    echo
+    read -p "Enter your choice (1-2): " -n 1 -r
+    echo
+    
+    case $REPLY in
+        1)
+            DRY_RUN=false
+            SKIP_INSTALL=false
+            INTERACTIVE=false
+            print_success "Proceeding with automatic installation"
+            ;;
+        2)
+            INTERACTIVE=true
+            print_status "Interactive mode enabled - you'll be asked at each step"
+            ;;
+        *)
+            print_error "Invalid choice. Please run the wizard again."
+            exit 1
+            ;;
+    esac
+}
+
+# Function to ask user for step preference
+ask_step_preference() {
+    local step_name=$1
+    local step_description=$2
+    
+    echo
+    print_status "About to: $step_description"
+    echo "  1) Install/Skip (auto-detect if already installed)"
+    echo "  2) Skip this step"
+    echo "  3) Dry run (show what would be done)"
+    echo
+    read -p "Enter your choice (1-3): " -n 1 -r
+    echo
+    
+    case $REPLY in
+        1)
+            DRY_RUN=false
+            SKIP_INSTALL=false
+            print_status "Proceeding with $step_name"
+            ;;
+        2)
+            DRY_RUN=false
+            SKIP_INSTALL=true
+            print_status "Skipping $step_name"
+            ;;
+        3)
+            DRY_RUN=true
+            SKIP_INSTALL=false
+            print_warning "DRY RUN for $step_name"
+            ;;
+        *)
+            print_error "Invalid choice. Skipping $step_name"
+            DRY_RUN=false
+            SKIP_INSTALL=true
+            ;;
+    esac
+}
+
 # Main wizard function
 main() {
     print_status "Nix Setup Wizard Starting..."
     print_status "Checking system and running all necessary installations..."
     
+    # Ask user for installation preference
+    ask_installation_preference
+    
     # Always go through all installation steps
     # Each function will check if already installed and skip if needed
     
-    print_status "1. Checking/Installing Xcode Command Line Tools..."
-    install_xcode_tools
-    
-    print_status "2. Checking/Installing Rosetta 2..."
-    install_rosetta
-    
-    print_status "3. Checking/Installing Nix..."
-    install_nix
-    
-    print_status "4. Generating/Updating flake.nix..."
-    generate_flake
+    if [[ $INTERACTIVE == true ]]; then
+        # Interactive mode - ask at each step
+        ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
+        if [[ $SKIP_INSTALL != true ]]; then
+            install_xcode_tools
+        fi
+        echo
+        
+        ask_step_preference "Rosetta 2" "check and install Rosetta 2 (if needed)"
+        if [[ $SKIP_INSTALL != true ]]; then
+            install_rosetta
+        fi
+        echo
+        
+        ask_step_preference "Nix" "check and install Nix with flakes"
+        if [[ $SKIP_INSTALL != true ]]; then
+            install_nix
+        fi
+        echo
+        
+        ask_step_preference "flake.nix" "generate or update flake.nix configuration"
+        if [[ $SKIP_INSTALL != true ]]; then
+            generate_flake
+        fi
+        echo
+    else
+        # Auto mode - install everything
+        install_xcode_tools
+        echo
+        
+        install_rosetta
+        echo
+        
+        install_nix
+        echo
+        
+        generate_flake
+        echo
+    fi
     
     print_success "Setup completed!"
     print_status "Next steps:"
     print_status "  1. Run: nix flake update"
     print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
     print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-    
     echo
+    
     read -p "Do you want to run these commands now? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
