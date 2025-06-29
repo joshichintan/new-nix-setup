@@ -177,26 +177,26 @@ generate_flake() {
         print_status "flake.nix exists, checking for existing configuration..."
         
         # Check if darwinConfigurations already exists for this hostname
-        if grep -q "darwinConfigurations = {" flake.nix && grep -A 5 "darwinConfigurations = {" flake.nix | grep -q "$hostname ="; then
+        if grep -A 10 "darwinConfigurations = {" flake.nix | grep -q "$hostname ="; then
             print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
         else
-            print_status "Adding new darwinConfigurations block..."
-            # Add new darwinConfigurations block before the closing brace
-            sed -i.bak "/^    };$/i\\
-      $hostname = libx.mkDarwin {\\
-        hostname = \"$hostname\";\\
-        username = \"$username\";\\
-      };
+            print_status "Adding new darwinConfigurations entry..."
+            # Add new entry inside darwinConfigurations block
+            sed -i.bak "/darwinConfigurations = {/a\\
+        $hostname = libx.mkDarwin {\\
+          hostname = \"$hostname\";\\
+          username = \"$username\";\\
+        };
 " flake.nix
         fi
         
         # Check if homeConfigurations already exists for this username@hostname
-        if grep -q "homeConfigurations = {" flake.nix && grep -A 5 "homeConfigurations = {" flake.nix | grep -q "\"$username@$hostname\""; then
+        if grep -A 10 "homeConfigurations = {" flake.nix | grep -q "\"$username@$hostname\""; then
             print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
         else
-            print_status "Adding new homeConfigurations block..."
-            # Add new homeConfigurations block before the closing brace
-            sed -i.bak "/^    };$/i\\
+            print_status "Adding new homeConfigurations entry..."
+            # Add new entry inside homeConfigurations block
+            sed -i.bak "/homeConfigurations = {/a\\
         \"$username@$hostname\" = libx.mkHome {\\
           username = \"$username\";\\
         };
