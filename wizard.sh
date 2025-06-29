@@ -294,8 +294,11 @@ generate_flake() {
     };
 }
 EOF      
+        else
+            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
+        fi
+        print_success "flake.nix created successfully"
     fi
-    print_success "flake.nix created successfully" 
 }
 
 # Main wizard function
