@@ -57,33 +57,32 @@ install_xcode_tools() {
         return 0
     fi
     
-    if [[ $DRY_RUN == true ]]; then
+    if [[ $DRY_RUN != true ]]; then
+        # Install without popups using AppleScript
+        print_status "Installing Xcode Command Line Tools (this may take a while)..."
+        
+        # Trigger installation
+        xcode-select --install
+        
+        # Wait for installation to complete
+        local timeout=600  # 10 minutes
+        local elapsed=0
+        
+        while [ $elapsed -lt $timeout ]; do
+            if xcode-select -p >/dev/null 2>&1; then
+                print_success "Xcode Command Line Tools installed successfully"
+                return 0
+            fi
+            sleep 10
+            elapsed=$((elapsed + 10))
+            print_status "Waiting for installation to complete... ($elapsed seconds elapsed)"
+        done
+        
+        print_error "Xcode Command Line Tools installation timed out"
+        exit 1
+    else
         print_dry_run "Would install Xcode Command Line Tools and wait for completion"
-        return 0
     fi
-    
-    # Install without popups using AppleScript
-    print_status "Installing Xcode Command Line Tools (this may take a while)..."
-    
-    # Trigger installation
-    xcode-select --install
-    
-    # Wait for installation to complete
-    local timeout=600  # 10 minutes
-    local elapsed=0
-    
-    while [ $elapsed -lt $timeout ]; do
-        if xcode-select -p >/dev/null 2>&1; then
-            print_success "Xcode Command Line Tools installed successfully"
-            return 0
-        fi
-        sleep 10
-        elapsed=$((elapsed + 10))
-        print_status "Waiting for installation to complete... ($elapsed seconds elapsed)"
-    done
-    
-    print_error "Xcode Command Line Tools installation timed out"
-    exit 1
 }
 
 # Function to install Rosetta 2
@@ -98,19 +97,18 @@ install_rosetta() {
             return 0
         fi
         
-        if [[ $DRY_RUN == true ]]; then
-            print_dry_run "Would install Rosetta 2 using softwareupdate --install-rosetta --agree-to-license"
-            return 0
-        fi
-        
-        print_status "Installing Rosetta 2..."
-        /usr/sbin/softwareupdate --install-rosetta --agree-to-license
-        
-        if [ $? -eq 0 ]; then
-            print_success "Rosetta 2 installed successfully"
+        if [[ $DRY_RUN != true ]]; then
+            print_status "Installing Rosetta 2..."
+            /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+            
+            if [ $? -eq 0 ]; then
+                print_success "Rosetta 2 installed successfully"
+            else
+                print_error "Failed to install Rosetta 2"
+                exit 1
+            fi
         else
-            print_error "Failed to install Rosetta 2"
-            exit 1
+            print_dry_run "Would install Rosetta 2 using softwareupdate --install-rosetta --agree-to-license"
         fi
     else
         print_status "Intel Mac detected, Rosetta 2 not needed"
@@ -124,33 +122,32 @@ install_nix() {
         return 0
     fi
     
-    if [[ $DRY_RUN == true ]]; then
-        print_dry_run "Would install Nix using official installer and enable flakes"
-        return 0
-    fi
-    
-    print_status "Installing Nix..."
-    
-    # Install Nix with official installer
-    sh <(curl -L https://nixos.org/nix/install) --daemon
-    
-    if [ $? -eq 0 ]; then
-        print_success "Nix installed successfully"
+    if [[ $DRY_RUN != true ]]; then
+        print_status "Installing Nix..."
         
-        # Source nix environment
-        if [ -f /etc/nix/nix.conf ]; then
-            . /etc/nix/nix.conf
+        # Install Nix with official installer
+        sh <(curl -L https://nixos.org/nix/install) --daemon
+        
+        if [ $? -eq 0 ]; then
+            print_success "Nix installed successfully"
+            
+            # Source nix environment
+            if [ -f /etc/nix/nix.conf ]; then
+                . /etc/nix/nix.conf
+            fi
+            
+            # Enable flakes
+            print_status "Enabling Nix flakes..."
+            mkdir -p ~/.config/nix
+            echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+            
+            print_success "Nix flakes enabled"
+        else
+            print_error "Failed to install Nix"
+            exit 1
         fi
-        
-        # Enable flakes
-        print_status "Enabling Nix flakes..."
-        mkdir -p ~/.config/nix
-        echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-        
-        print_success "Nix flakes enabled"
     else
-        print_error "Failed to install Nix"
-        exit 1
+        print_dry_run "Would install Nix using official installer and enable flakes"
     fi
 }
 
@@ -191,9 +188,7 @@ generate_flake() {
             print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
         else
             print_status "Adding new darwinConfigurations entry..."
-            if [[ $DRY_RUN == true ]]; then
-                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
-            else
+            if [[ $DRY_RUN != true ]]; then
                 # Add new entry inside darwinConfigurations block
                 sed -i.bak "/darwinConfigurations = {/a\\
         $hostname = libx.mkDarwin {\\
@@ -201,6 +196,8 @@ generate_flake() {
           username = \"$username\";\\
         };
 " flake.nix
+            else
+                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
             fi
         fi
         
@@ -209,28 +206,26 @@ generate_flake() {
             print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
         else
             print_status "Adding new homeConfigurations entry..."
-            if [[ $DRY_RUN == true ]]; then
-                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
-            else
+            if [[ $DRY_RUN != true ]]; then
                 # Add new entry inside homeConfigurations block
                 sed -i.bak "/homeConfigurations = {/a\\
         \"$username@$hostname\" = libx.mkHome {\\
           username = \"$username\";\\
         };
 " flake.nix
+            else
+                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
             fi
         fi
         
-        if [[ $DRY_RUN == true ]]; then
-            print_dry_run "Would update existing flake.nix"
-        else
+        if [[ $DRY_RUN != true ]]; then
             print_success "Configuration check completed"
+        else
+            print_dry_run "Would update existing flake.nix"
         fi
     else
         print_status "Creating new flake.nix..."
-        if [[ $DRY_RUN == true ]]; then
-            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
-        else
+        if [[ $DRY_RUN != true ]]; then
             cat > flake.nix << EOF
 {
   inputs = {
@@ -303,6 +298,8 @@ generate_flake() {
 }
 EOF
             print_success "flake.nix created successfully"
+        else
+            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
         fi
     fi
 }
@@ -362,30 +359,30 @@ main() {
                 print_status "Running commands..."
                 
                 print_status "1. Updating flake..."
-                if [[ $DRY_RUN == true ]]; then
-                    print_dry_run "Would run: nix flake update"
-                else
+                if [[ $DRY_RUN != true ]]; then
                     nix flake update
+                else
+                    print_dry_run "Would run: nix flake update"
                 fi
                 
                 print_status "2. Building darwin configuration..."
-                if [[ $DRY_RUN == true ]]; then
-                    print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-                else
+                if [[ $DRY_RUN != true ]]; then
                     nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+                else
+                    print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
                 fi
                 
                 print_status "3. Building home configuration..."
-                if [[ $DRY_RUN == true ]]; then
-                    print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-                else
+                if [[ $DRY_RUN != true ]]; then
                     nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+                else
+                    print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
                 fi
                 
-                if [[ $DRY_RUN == true ]]; then
-                    print_dry_run "Would complete all build commands"
-                else
+                if [[ $DRY_RUN != true ]]; then
                     print_success "All commands completed!"
+                else
+                    print_dry_run "Would complete all build commands"
                 fi
             else
                 print_status "Commands not run. You can run them manually:"
