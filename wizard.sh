@@ -169,61 +169,49 @@ install_nix() {
     fi
 }
 
-# Function to generate flake.nix
-generate_flake() {
-    local username=$(whoami)
-    local hostname=$(hostname | cut -d'.' -f1)
-    local system=$(detect_architecture)
-    
-    print_status "Generating flake.nix with:"
-    print_status "  Username: $username"
-    print_status "  Hostname: $hostname"
-    print_status "  System: $system"
-    
-    if [[ -f flake.nix ]]; then
-        print_status "flake.nix exists, checking for existing configuration..."
-        
-        # Check if darwinConfigurations already exists for this hostname
-        if grep -A 10 "darwinConfigurations = {" flake.nix | grep -q "$hostname ="; then
-            print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
-        else
-            print_status "Adding new darwinConfigurations entry..."
-            if [[ $DRY_RUN != true ]]; then
-                # Add new entry inside darwinConfigurations block
-                sed -i.bak "/darwinConfigurations = {/a\\
+# Function to check if darwin configuration exists
+check_darwin_config_exists() {
+    local hostname=$1
+    grep -A 10 "darwinConfigurations = {" flake.nix | grep -q "$hostname ="
+}
+
+# Function to check if home configuration exists
+check_home_config_exists() {
+    local username=$1
+    local hostname=$2
+    grep -A 10 "homeConfigurations = {" flake.nix | grep -q "\"$username@$hostname\""
+}
+
+# Function to add darwin configuration
+add_darwin_config() {
+    local hostname=$1
+    local username=$2
+    sed -i.bak "/darwinConfigurations = {/a\\
         $hostname = libx.mkDarwin {\\
           hostname = \"$hostname\";\\
           username = \"$username\";\\
         };
 " flake.nix
-            else
-                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
-            fi
-        fi
-        
-        # Check if homeConfigurations already exists for this username@hostname
-        if grep -A 10 "homeConfigurations = {" flake.nix | grep -q "\"$username@$hostname\""; then
-            print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
-        else
-            print_status "Adding new homeConfigurations entry..."
-            if [[ $DRY_RUN != true ]]; then
-                # Add new entry inside homeConfigurations block
-                sed -i.bak "/homeConfigurations = {/a\\
+}
+
+# Function to add home configuration
+add_home_config() {
+    local username=$1
+    local hostname=$2
+    sed -i.bak "/homeConfigurations = {/a\\
         \"$username@$hostname\" = libx.mkHome {\\
           username = \"$username\";\\
         };
 " flake.nix
-            else
-                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
-            fi
-        fi
-        
-        print_success "Configuration check completed"
+}
 
-    else
-        print_status "Creating new flake.nix..."
-        if [[ $DRY_RUN != true ]]; then
-            cat > flake.nix << EOF
+# Function to generate flake.nix content
+generate_flake_content() {
+    local username=$1
+    local hostname=$2
+    local system=$3
+    
+    cat << EOF
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -293,7 +281,53 @@ generate_flake() {
       };
     };
 }
-EOF      
+EOF
+}
+
+# Function to generate flake.nix
+generate_flake() {
+    local username=$(whoami)
+    local hostname=$(hostname | cut -d'.' -f1)
+    local system=$(detect_architecture)
+    
+    print_status "Generating flake.nix with:"
+    print_status "  Username: $username"
+    print_status "  Hostname: $hostname"
+    print_status "  System: $system"
+    
+    if [[ -f flake.nix ]]; then
+        print_status "flake.nix exists, checking for existing configuration..."
+        
+        # Check and add darwin configuration
+        if check_darwin_config_exists "$hostname"; then
+            print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
+        else
+            print_status "Adding new darwinConfigurations entry..."
+            if [[ $DRY_RUN != true ]]; then
+                add_darwin_config "$hostname" "$username"
+            else
+                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
+            fi
+        fi
+        
+        # Check and add home configuration
+        if check_home_config_exists "$username" "$hostname"; then
+            print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
+        else
+            print_status "Adding new homeConfigurations entry..."
+            if [[ $DRY_RUN != true ]]; then
+                add_home_config "$username" "$hostname"
+            else
+                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
+            fi
+        fi
+        
+        print_success "Configuration check completed"
+
+    else
+        print_status "Creating new flake.nix..."
+        if [[ $DRY_RUN != true ]]; then
+            generate_flake_content "$username" "$hostname" "$system" > flake.nix
         else
             print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
         fi
