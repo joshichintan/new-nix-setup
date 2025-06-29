@@ -337,6 +337,38 @@ generate_flake() {
     fi
 }
 
+# Function to run build commands
+run_build_commands() {
+    print_status "Running build commands..."
+    
+    print_status "1. Updating flake..."
+    if [[ $DRY_RUN != true ]]; then
+        nix flake update
+    else
+        print_dry_run "Would run: nix flake update"
+    fi
+    
+    print_status "2. Building darwin configuration..."
+    if [[ $DRY_RUN != true ]]; then
+        nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+    else
+        print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+    fi
+    
+    print_status "3. Building home configuration..."
+    if [[ $DRY_RUN != true ]]; then
+        nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+    else
+        print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+    fi
+    
+    if [[ $DRY_RUN != true ]]; then
+        print_success "All commands completed!"
+    else
+        print_dry_run "Would complete all build commands"
+    fi
+}
+
 # Function to ask user for installation preference
 ask_installation_preference() {
     echo
@@ -439,6 +471,12 @@ main() {
             generate_flake
         fi
         echo
+        
+        ask_step_preference "build commands" "run nix build commands (flake update, darwin build, home build)"
+        if [[ $SKIP_INSTALL != true ]]; then
+            run_build_commands
+        fi
+        echo
     else
         # Auto mode - install everything
         install_xcode_tools
@@ -452,51 +490,24 @@ main() {
         
         generate_flake
         echo
-    fi
-    
-    print_success "Setup completed!"
-    print_status "Next steps:"
-    print_status "  1. Run: nix flake update"
-    print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-    print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-    echo
-    
-    read -p "Do you want to run these commands now? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_status "Running commands..."
         
-        print_status "1. Updating flake..."
-        if [[ $DRY_RUN != true ]]; then
-            nix flake update
-        else
-            print_dry_run "Would run: nix flake update"
-        fi
+        # Auto mode also asks about build commands
+        print_status "Next steps:"
+        print_status "  1. Run: nix flake update"
+        print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+        print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        echo
         
-        print_status "2. Building darwin configuration..."
-        if [[ $DRY_RUN != true ]]; then
-            nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+        read -p "Do you want to run these commands now? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            run_build_commands
         else
-            print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+            print_status "Commands not run. You can run them manually:"
+            print_status "  nix flake update"
+            print_status "  nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+            print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         fi
-        
-        print_status "3. Building home configuration..."
-        if [[ $DRY_RUN != true ]]; then
-            nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
-        else
-            print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-        fi
-        
-        if [[ $DRY_RUN != true ]]; then
-            print_success "All commands completed!"
-        else
-            print_dry_run "Would complete all build commands"
-        fi
-    else
-        print_status "Commands not run. You can run them manually:"
-        print_status "  nix flake update"
-        print_status "  nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-        print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
     fi
     
     print_success "Wizard completed successfully!"
