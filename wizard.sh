@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Initialize DRY_RUN variable
+DRY_RUN=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--dry-run]"
+            exit 1
+            ;;
+    esac
+done
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -35,7 +53,7 @@ command_exists() {
 
 # Function to detect system architecture
 detect_architecture() {
-    if [[ $(uname -m) == "Darwin" ]]; then
+    if [[ $(uname -m) == "arm64" ]]; then
         echo "aarch64-darwin"
     else
         echo "x86_64-darwin"
@@ -218,11 +236,8 @@ generate_flake() {
             fi
         fi
         
-        if [[ $DRY_RUN != true ]]; then
-            print_success "Configuration check completed"
-        else
-            print_dry_run "Would update existing flake.nix"
-        fi
+        print_success "Configuration check completed"
+
     else
         print_status "Creating new flake.nix..."
         if [[ $DRY_RUN != true ]]; then
@@ -296,12 +311,9 @@ generate_flake() {
       };
     };
 }
-EOF
-            print_success "flake.nix created successfully"
-        else
-            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
-        fi
+EOF      
     fi
+    print_success "flake.nix created successfully" 
 }
 
 # Function to setup existing installation
@@ -343,53 +355,49 @@ main() {
         install_nix
         generate_flake
         
-        if [[ $DRY_RUN == true ]]; then
-            print_warning "DRY RUN COMPLETED - No changes were made"
-        else
-            print_success "Fresh installation completed!"
-            print_status "Next steps:"
-            print_status "  1. Run: nix flake update"
-            print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-            print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        print_success "Fresh installation completed!"
+        print_status "Next steps:"
+        print_status "  1. Run: nix flake update"
+        print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+        print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        
+        echo
+        read -p "Do you want to run these commands now? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Running commands..."
             
-            echo
-            read -p "Do you want to run these commands now? (y/N): " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                print_status "Running commands..."
-                
-                print_status "1. Updating flake..."
-                if [[ $DRY_RUN != true ]]; then
-                    nix flake update
-                else
-                    print_dry_run "Would run: nix flake update"
-                fi
-                
-                print_status "2. Building darwin configuration..."
-                if [[ $DRY_RUN != true ]]; then
-                    nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
-                else
-                    print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-                fi
-                
-                print_status "3. Building home configuration..."
-                if [[ $DRY_RUN != true ]]; then
-                    nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
-                else
-                    print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-                fi
-                
-                if [[ $DRY_RUN != true ]]; then
-                    print_success "All commands completed!"
-                else
-                    print_dry_run "Would complete all build commands"
-                fi
+            print_status "1. Updating flake..."
+            if [[ $DRY_RUN != true ]]; then
+                nix flake update
             else
-                print_status "Commands not run. You can run them manually:"
-                print_status "  nix flake update"
-                print_status "  nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
-                print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+                print_dry_run "Would run: nix flake update"
             fi
+            
+            print_status "2. Building darwin configuration..."
+            if [[ $DRY_RUN != true ]]; then
+                nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+            else
+                print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+            fi
+            
+            print_status "3. Building home configuration..."
+            if [[ $DRY_RUN != true ]]; then
+                nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+            else
+                print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+            fi
+            
+            if [[ $DRY_RUN != true ]]; then
+                print_success "All commands completed!"
+            else
+                print_dry_run "Would complete all build commands"
+            fi
+        else
+            print_status "Commands not run. You can run them manually:"
+            print_status "  nix flake update"
+            print_status "  nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+            print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         fi
     fi
     
