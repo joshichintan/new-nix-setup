@@ -78,30 +78,39 @@ install_xcode_tools() {
     fi
     
     if [[ $DRY_RUN != true ]]; then
-        # Install without popups using AppleScript
         print_status "Installing Xcode Command Line Tools (this may take a while)..."
         
-        # Trigger installation
-        xcode-select --install
+        # Step 1: Create the temp file to trigger Command Line Tools listing
+        XCLT_TMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+        sudo touch "$XCLT_TMP"
         
-        # Wait for installation to complete
-        local timeout=600  # 10 minutes
-        local elapsed=0
+        # Step 2: Find the latest Command Line Tools label
+        LABEL=$(softwareupdate --list 2>/dev/null | \
+          grep -B 1 -E 'Command Line Tools' | \
+          awk -F'*' '/^ *\*/ {gsub(/^ *\* */, "", $0); print}' | \
+          sort | tail -n1)
         
-        while [ $elapsed -lt $timeout ]; do
-            if xcode-select -p >/dev/null 2>&1; then
-                print_success "Xcode Command Line Tools installed successfully"
-                return 0
-            fi
-            sleep 10
-            elapsed=$((elapsed + 10))
-            print_status "Waiting for installation to complete... ($elapsed seconds elapsed)"
-        done
+        if [ -z "$LABEL" ]; then
+            print_error "Command Line Tools not found in softwareupdate list."
+            sudo rm -f "$XCLT_TMP"
+            exit 1
+        fi
         
-        print_error "Xcode Command Line Tools installation timed out"
-        exit 1
+        print_status "Installing: $LABEL"
+        sudo softwareupdate --install "$LABEL"
+        
+        # Step 3: Remove the temp file
+        sudo rm -f "$XCLT_TMP"
+        
+        # Verify installation
+        if xcode-select -p >/dev/null 2>&1; then
+            print_success "Xcode Command Line Tools installed successfully"
+        else
+            print_error "Xcode Command Line Tools installation failed"
+            exit 1
+        fi
     else
-        print_dry_run "Would install Xcode Command Line Tools and wait for completion"
+        print_dry_run "Would install Xcode Command Line Tools using softwareupdate"
     fi
 }
 
