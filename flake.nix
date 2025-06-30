@@ -58,24 +58,29 @@
 
       stateVersion = "24.05";
       libx = import ./lib {inherit inputs outputs stateVersion;};
-      
+
       # Import host configurations
       hosts = import ./hosts.nix;
     in {
-      darwinConfigurations = builtins.mapAttrs (name: config: 
-        libx.mkDarwin {
-          hostname = config.hostname;
-          username = config.username;
-        }
-      ) hosts;
+      darwinConfigurations =
+        builtins.mapAttrs (
+          name: config:
+            libx.mkDarwin {
+              hostname = config.hostname;
+              username = config.username;
+            }
+        )
+        hosts;
 
       # Standalone Home Manager configurations
-      homeConfigurations = builtins.foldl' (acc: host: 
-        acc // {
-          "${host.username}@${host.hostname}" = libx.mkHome {
-            username = host.username;
-          };
-        }
+      homeConfigurations = builtins.foldl' (
+        acc: host:
+          acc
+          // {
+            "${host.username}@${host.hostname}" = libx.mkHome {
+              username = host.username;
+            };
+          }
       ) {} (builtins.attrValues hosts);
     };
 }
