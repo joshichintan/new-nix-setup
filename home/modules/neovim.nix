@@ -145,7 +145,6 @@
           action = "<cmd>tabnew %<CR>";
         }
       ];
-    };
 
     statusline.lualine = {
       enable = true;
@@ -161,7 +160,7 @@
     };
 
       # Plugins (converted from your current setup)
-      extraPlugins = {
+    extraPlugins = {
       #   # Your existing plugins
       #   comment-nvim = pkgs.vimPlugins.comment-nvim;
       #   lualine-nvim = pkgs.vimPlugins.lualine-nvim;
@@ -171,7 +170,7 @@
         gruvbox-material = pkgs.vimPlugins.gruvbox-material;
       #   telescope-nvim = pkgs.vimPlugins.telescope-nvim;
       #   telescope-fzf-native-nvim = pkgs.vimPlugins.telescope-fzf-native-nvim;
-      };
+    };
 
       # Custom Lua configuration (only for terminal detection)
       luaConfigRC.themeSetup = ''
