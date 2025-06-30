@@ -4,11 +4,13 @@
   # nvf - Modern Neovim configuration
   programs.nvf = {
     enable = true;
-    viAlias = true;
-    vimAlias = true;
-    vimdiffAlias = true;
 
     settings.vim = {
+      # Aliases
+      viAlias = true;
+      vimAlias = true;
+      vimdiffAlias = true;
+
       # Theme configuration (matching your current setup)
       theme = {
         enable = true;
