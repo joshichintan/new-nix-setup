@@ -15,13 +15,6 @@
       viAlias = true;
       vimAlias = true;
 
-      # Theme configuration (matching your current setup)
-      # theme = {
-      #   enable = true;
-      #   name = "gruvbox-material";
-      #   style = "dark";
-      # };
-
       # Editor options (converted from options.lua)
       options = {
         # Basic display
@@ -60,54 +53,125 @@
         mouse = "a";
       };
 
-      # Keymaps (converted from keymap.lua)
-      # keymaps = {[
-      #   # Leader key
-      #   leader = " ";
+      # Keymaps using proper nvf syntax
+      keymaps = [
+        # Insert mode - exit with jk
+        {
+          key = "jk";
+          mode = "i";
+          action = "<ESC>";
+        }
+        
+        # Normal mode keymaps
+        {
+          key = "<leader>nh";
+          mode = "n";
+          action = ":nohl<CR>";
+        }
+        
+        # Telescope keymaps
+        {
+          key = "<leader>ff";
+          mode = "n";
+          action = "<cmd>Telescope find_files<cr>";
+        }
+        {
+          key = "<leader>fr";
+          mode = "n";
+          action = "<cmd>Telescope oldfiles<cr>";
+        }
+        {
+          key = "<leader>fs";
+          mode = "n";
+          action = "<cmd>Telescope live_grep<cr>";
+        }
+        {
+          key = "<leader>fc";
+          mode = "n";
+          action = "<cmd>Telescope grep_string<cr>";
+        }
+        {
+          key = "<leader>ft";
+          mode = "n";
+          action = "<cmd>TodoTelescope<cr>";
+        }
+        
+        # Window management
+        {
+          key = "<leader>sv";
+          mode = "n";
+          action = "<C-w>v";
+        }
+        {
+          key = "<leader>sh";
+          mode = "n";
+          action = "<C-w>s";
+        }
+        {
+          key = "<leader>se";
+          mode = "n";
+          action = "<C-w>=";
+        }
+        {
+          key = "<leader>sx";
+          mode = "n";
+          action = "<cmd>close<CR>";
+        }
+        
+        # Tab management
+        {
+          key = "<leader>to";
+          mode = "n";
+          action = "<cmd>tabnew<CR>";
+        }
+        {
+          key = "<leader>tx";
+          mode = "n";
+          action = "<cmd>tabclose<CR>";
+        }
+        {
+          key = "<leader>tn";
+          mode = "n";
+          action = "<cmd>tabn<CR>";
+        }
+        {
+          key = "<leader>tp";
+          mode = "n";
+          action = "<cmd>tabp<CR>";
+        }
+        {
+          key = "<leader>tf";
+          mode = "n";
+          action = "<cmd>tabnew %<CR>";
+        }
+      ];
+    };
 
-      #   # Insert mode
-      #   insert = {
-      #     "jk" = "<ESC>"; # Exit insert mode with jk
-      #   };
+    statusline.lualine = {
+      enable = true;
+    };
 
-      #   # Normal mode
-      #   normal = {
-      #     "<leader>nh" = ":nohl<CR>"; # Clear search highlights
+    autocomplete.nvim-cmp.enable = true;
 
-      #     # Telescope
-      #     "<leader>ff" = "<cmd>Telescope find_files<cr>"; # Fuzzy find files
-      #     "<leader>fr" = "<cmd>Telescope oldfiles<cr>"; # Fuzzy find recent files
-      #     "<leader>fs" = "<cmd>Telescope live_grep<cr>"; # Find string in cwd
-      #     "<leader>fc" = "<cmd>Telescope grep_string<cr>"; # Find string under cursor
-      #     "<leader>ft" = "<cmd>TodoTelescope<cr>"; # Find todos
+    languages = {
+      enableLSP = true;
+      enableTreesitter = true;
 
-      #     # Window management
-      #     "<leader>sv" = "<C-w>v"; # Split window vertically
-      #     "<leader>sh" = "<C-w>s"; # Split window horizontally
-      #     "<leader>se" = "<C-w>="; # Make splits equal size
-      #     "<leader>sx" = "<cmd>close<CR>"; # Close current split
-
-      #     # Tab management
-      #     "<leader>to" = "<cmd>tabnew<CR>"; # Open new tab
-      #     "<leader>tx" = "<cmd>tabclose<CR>"; # Close current tab
-      #     "<leader>tn" = "<cmd>tabn<CR>"; # Go to next tab
-      #     "<leader>tp" = "<cmd>tabp<CR>"; # Go to previous tab
-      #     "<leader>tf" = "<cmd>tabnew %<CR>"; # Open current buffer in new tab
-      #   };]
-      # };
+      python.enable = true;
+    };
 
       # Plugins (converted from your current setup)
-      # extraPlugins = {
+      extraPlugins = {
       #   # Your existing plugins
       #   comment-nvim = pkgs.vimPlugins.comment-nvim;
       #   lualine-nvim = pkgs.vimPlugins.lualine-nvim;
       #   nvim-web-devicons = pkgs.vimPlugins.nvim-web-devicons;
       #   vim-tmux-navigator = pkgs.vimPlugins.vim-tmux-navigator;
-      #   gruvbox-nvim = pkgs.vimPlugins.gruvbox-nvim;
-      #   gruvbox-material = pkgs.vimPlugins.gruvbox-material;
+        gruvbox-nvim = pkgs.vimPlugins.gruvbox-nvim;
+        gruvbox-material = pkgs.vimPlugins.gruvbox-material;
       #   telescope-nvim = pkgs.vimPlugins.telescope-nvim;
       #   telescope-fzf-native-nvim = pkgs.vimPlugins.telescope-fzf-native-nvim;
-      # };
+      };
 
       # Custom Lua configuration (only for terminal detection)
       luaConfigRC.themeSetup = ''
