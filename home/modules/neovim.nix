@@ -7,6 +7,7 @@
   ...
 }: {
   # nvf - Modern Neovim configuration
+  # programs.neovim.enable = true;
   programs.nvf = {
     enable = true;
 
@@ -61,14 +62,14 @@
           mode = "i";
           action = "<ESC>";
         }
-        
+
         # Normal mode keymaps
         {
           key = "<leader>nh";
           mode = "n";
           action = ":nohl<CR>";
         }
-        
+
         # Telescope keymaps
         {
           key = "<leader>ff";
@@ -95,7 +96,7 @@
           mode = "n";
           action = "<cmd>TodoTelescope<cr>";
         }
-        
+
         # Window management
         {
           key = "<leader>sv";
@@ -117,7 +118,7 @@
           mode = "n";
           action = "<cmd>close<CR>";
         }
-        
+
         # Tab management
         {
           key = "<leader>to";
@@ -146,31 +147,23 @@
         }
       ];
 
-    statusline.lualine = {
-      enable = true;
-    };
+      statusline.lualine = {
+        enable = true;
+      };
 
-    autocomplete.nvim-cmp.enable = true;
+      autocomplete.nvim-cmp.enable = true;
+      lsp.enable = true;
+      languages = {
+        enableTreesitter = true;
 
-    languages = {
-      enableLSP = true;
-      enableTreesitter = true;
-
-      python.enable = true;
-    };
+        python.enable = true;
+      };
 
       # Plugins (converted from your current setup)
-    extraPlugins = {
-      #   # Your existing plugins
-      #   comment-nvim = pkgs.vimPlugins.comment-nvim;
-      #   lualine-nvim = pkgs.vimPlugins.lualine-nvim;
-      #   nvim-web-devicons = pkgs.vimPlugins.nvim-web-devicons;
-      #   vim-tmux-navigator = pkgs.vimPlugins.vim-tmux-navigator;
-        gruvbox-nvim = pkgs.vimPlugins.gruvbox-nvim;
-        gruvbox-material = pkgs.vimPlugins.gruvbox-material;
-      #   telescope-nvim = pkgs.vimPlugins.telescope-nvim;
-      #   telescope-fzf-native-nvim = pkgs.vimPlugins.telescope-fzf-native-nvim;
-    };
+      extraPlugins = {
+        gruvbox-nvim = {package = pkgs.vimPlugins.gruvbox-nvim;};
+        gruvbox-material = {package = pkgs.vimPlugins.gruvbox-material;};
+      };
 
       # Custom Lua configuration (only for terminal detection)
       luaConfigRC.themeSetup = ''
