@@ -171,49 +171,53 @@ install_nix() {
     fi
 }
 
-# Function to check if darwin configuration exists
-check_darwin_config_exists() {
+# Function to check if host configuration exists in hosts.nix
+check_host_config_exists() {
     local hostname=$1
-    grep -A 10 "darwinConfigurations = {" flake.nix | grep -q "$hostname ="
+    if [[ -f hosts.nix ]]; then
+        grep -q "\"$hostname\"" hosts.nix
+    else
+        false
+    fi
 }
 
-# Function to check if home configuration exists
-check_home_config_exists() {
+# Function to add host configuration to hosts.nix
+add_host_config() {
     local username=$1
     local hostname=$2
-    grep -A 10 "homeConfigurations = {" flake.nix | grep -q "\"$username@$hostname\""
-}
-
-# Function to add darwin configuration
-add_darwin_config() {
-    local hostname=$1
-    local username=$2
-    sed -i.bak "/darwinConfigurations = {/a\\
-        $hostname = libx.mkDarwin {\\
-          hostname = \"$hostname\";\\
-          username = \"$username\";\\
-        };
-" flake.nix
-}
-
-# Function to add home configuration
-add_home_config() {
-    local username=$1
-    local hostname=$2
-    sed -i.bak "/homeConfigurations = {/a\\
-        \"$username@$hostname\" = libx.mkHome {\\
-          username = \"$username\";\\
-        };
-" flake.nix
-}
-
-# Function to generate flake.nix content
-generate_flake_content() {
-    local username=$1
-    local hostname=$2
-    local system=$3
     
-    cat << EOF
+    if [[ $DRY_RUN != true ]]; then
+        if [[ -f hosts.nix ]]; then
+            # Add new host to existing hosts.nix
+            sed -i.bak "/^}/i\\
+  $hostname = {\\
+    hostname = \"$hostname\";\\
+    username = \"$username\";\\
+  };
+" hosts.nix
+        else
+            # Create new hosts.nix file
+            cat > hosts.nix << EOF
+# Host configurations
+{
+  $hostname = {
+    hostname = "$hostname";
+    username = "$username";
+  };
+}
+EOF
+        fi
+    else
+        print_dry_run "Would add host configuration for '$username@$hostname' to hosts.nix"
+    fi
+}
+
+# Function to show flake.nix boilerplate
+show_flake_boilerplate() {
+    print_status "Here's a suggested boilerplate for your flake.nix:"
+    echo
+    print_status "Create flake.nix with this structure:"
+    cat << 'EOF'
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -268,22 +272,30 @@ generate_flake_content() {
 
       stateVersion = "24.05";
       libx = import ./lib {inherit inputs outputs stateVersion;};
+      
+      # Import host configurations
+      hosts = import ./hosts.nix;
     in {
-      darwinConfigurations = {
-        $hostname = libx.mkDarwin {
-          hostname = "$hostname";
-          username = "$username";
-        };
-      };
+      darwinConfigurations = builtins.mapAttrs (name: config: 
+        libx.mkDarwin {
+          hostname = config.hostname;
+          username = config.username;
+        }
+      ) hosts;
 
-      homeConfigurations = {
-        "$username@$hostname" = libx.mkHome {
-          username = "$username";
-        };
-      };
+      # Standalone Home Manager configurations
+      homeConfigurations = builtins.foldl' (acc: host: 
+        acc // {
+          "${host.username}@${host.hostname}" = libx.mkHome {
+            username = host.username;
+          };
+        }
+      ) {} (builtins.attrValues hosts);
     };
 }
 EOF
+    echo
+    print_status "You can customize the inputs section according to your needs."
 }
 
 # Function to generate flake.nix
@@ -292,49 +304,42 @@ generate_flake() {
     local hostname=$(hostname | cut -d'.' -f1)
     local system=$(detect_architecture)
     
-    print_status "Generating flake.nix with:"
+    print_status "Managing host configurations:"
     print_status "  Username: $username"
     print_status "  Hostname: $hostname"
     print_status "  System: $system"
     
-    if [[ -f flake.nix ]]; then
-        print_status "flake.nix exists, checking for existing configuration..."
-        
-        # Check and add darwin configuration
-        if check_darwin_config_exists "$hostname"; then
-            print_status "Darwin configuration for hostname '$hostname' already exists, skipping..."
-        else
-            print_status "Adding new darwinConfigurations entry..."
-            if [[ $DRY_RUN != true ]]; then
-                add_darwin_config "$hostname" "$username"
-            else
-                print_dry_run "Would add darwinConfigurations entry for hostname '$hostname'"
-            fi
-        fi
-        
-        # Check and add home configuration
-        if check_home_config_exists "$username" "$hostname"; then
-            print_status "Home Manager configuration for '$username@$hostname' already exists, skipping..."
-        else
-            print_status "Adding new homeConfigurations entry..."
-            if [[ $DRY_RUN != true ]]; then
-                add_home_config "$username" "$hostname"
-            else
-                print_dry_run "Would add homeConfigurations entry for '$username@$hostname'"
-            fi
-        fi
-        
-        print_success "Configuration check completed"
-
+    # Only manage hosts.nix, don't touch flake.nix
+    if check_host_config_exists "$hostname"; then
+        print_status "Host configuration for hostname '$hostname' already exists in hosts.nix, skipping..."
     else
-        print_status "Creating new flake.nix..."
+        print_status "Adding new host configuration to hosts.nix..."
         if [[ $DRY_RUN != true ]]; then
-            generate_flake_content "$username" "$hostname" "$system" > flake.nix
+            add_host_config "$username" "$hostname"
         else
-            print_dry_run "Would create new flake.nix with username='$username', hostname='$hostname', system='$system'"
+            print_dry_run "Would add host configuration for '$username@$hostname' to hosts.nix"
         fi
-        print_success "flake.nix created successfully"
     fi
+    
+    # Check if flake.nix exists and has the right structure
+    if [[ -f flake.nix ]]; then
+        if grep -q "import ./hosts.nix" flake.nix; then
+            print_success "✓ flake.nix already imports hosts.nix correctly"
+        else
+            print_warning "flake.nix exists but doesn't import hosts.nix"
+            print_status "You may need to update your flake.nix to use the modular approach:"
+            print_status "  hosts = import ./hosts.nix;"
+            print_status "  darwinConfigurations = builtins.mapAttrs (...) hosts;"
+            print_status "  homeConfigurations = builtins.foldl' (...) hosts;"
+        fi
+    else
+        print_warning "flake.nix not found"
+        print_status "Here's a suggested boilerplate for your flake.nix:"
+        echo
+        show_flake_boilerplate
+    fi
+    
+    print_success "Host configuration management completed"
 }
 
 # Function to run build commands
