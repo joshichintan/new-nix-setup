@@ -102,8 +102,8 @@ install_xcode_tools() {
         elapsed=0
         while true; do
             mapfile -t LABELS < <(softwareupdate --list 2>/dev/null | \
-                grep -E 'Command Line Tools for Xcode' | \
-                sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
+                grep -E '^ *Command Line Tools for Xcode' | \
+                sed -E 's/^ *//; s/ *$//' | \
                 sort -V)
             if [ ${#LABELS[@]} -gt 0 ]; then
                 break
