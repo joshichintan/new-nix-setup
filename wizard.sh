@@ -66,6 +66,19 @@ detect_architecture() {
 install_xcode_tools() {
     print_status "Installing Xcode Command Line Tools..."
     
+    # Define temp file path
+    XCLT_TMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+    
+    # Function to cleanup temp file
+    cleanup_temp_file() {
+        if [ -f "$XCLT_TMP" ]; then
+            sudo rm -f "$XCLT_TMP"
+        fi
+    }
+    
+    # Ensure cleanup on exit
+    trap cleanup_temp_file EXIT
+    
     if ! command_exists xcode-select; then
         print_error "Xcode Command Line Tools not found. Please install Xcode first."
         exit 1
@@ -81,26 +94,37 @@ install_xcode_tools() {
         print_status "Installing Xcode Command Line Tools (this may take a while)..."
         
         # Step 1: Create the temp file to trigger Command Line Tools listing
-        XCLT_TMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
         sudo touch "$XCLT_TMP"
         
-        # Step 2: Find the latest Command Line Tools label using Label format
-        LABEL=$(softwareupdate --list 2>/dev/null | \
+        # Step 2: Find all available Command Line Tools labels
+        mapfile -t LABELS < <(softwareupdate --list 2>/dev/null | \
             grep -E 'Command Line Tools for Xcode' | \
             sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
-            sort | tail -n1)
+            sort -V)
         
-        if [ -z "$LABEL" ]; then
+        if [ ${#LABELS[@]} -eq 0 ]; then
             print_error "Command Line Tools not found in softwareupdate list."
-            sudo rm -f "$XCLT_TMP"
             exit 1
         fi
         
-        print_status "Installing: ==$LABEL=="
-        sudo softwareupdate --install "$LABEL"
+        echo "Available Command Line Tools versions:"
+        for i in "${!LABELS[@]}"; do
+            printf "  [%d] %s\n" "$((i+1))" "${LABELS[$i]}"
+        done
         
-        # Step 3: Remove the temp file
-        sudo rm -f "$XCLT_TMP"
+        read -p "Enter the number of the version to install [${#LABELS[@]}]: " CHOICE
+        if [[ -z "$CHOICE" ]]; then
+            CHOICE=${#LABELS[@]}  # Default to the latest
+        fi
+        
+        if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || (( CHOICE < 1 || CHOICE > ${#LABELS[@]} )); then
+            print_error "Invalid selection."
+            exit 1
+        fi
+        
+        LABEL="${LABELS[$((CHOICE-1))]}"
+        print_status "Installing: $LABEL"
+        sudo softwareupdate --install "$LABEL"
         
         # Verify installation
         if xcode-select -p >/dev/null 2>&1; then
