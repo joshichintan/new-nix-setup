@@ -96,16 +96,25 @@ install_xcode_tools() {
         # Step 1: Create the temp file to trigger Command Line Tools listing
         sudo touch "$XCLT_TMP"
         
-        # Step 2: Find all available Command Line Tools labels
-        mapfile -t LABELS < <(softwareupdate --list 2>/dev/null | \
-            grep -E 'Command Line Tools for Xcode' | \
-            sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
-            sort -V)
-        
-        if [ ${#LABELS[@]} -eq 0 ]; then
-            print_error "Command Line Tools not found in softwareupdate list."
-            exit 1
-        fi
+        # Step 2: Wait for Command Line Tools label to appear (timeout after 60s)
+        TIMEOUT=60
+        INTERVAL=3
+        elapsed=0
+        while true; do
+            mapfile -t LABELS < <(softwareupdate --list 2>/dev/null | \
+                grep -E 'Command Line Tools for Xcode' | \
+                sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
+                sort -V)
+            if [ ${#LABELS[@]} -gt 0 ]; then
+                break
+            fi
+            if [ $elapsed -ge $TIMEOUT ]; then
+                print_error "Timed out waiting for Command Line Tools to appear in softwareupdate list."
+                exit 1
+            fi
+            sleep $INTERVAL
+            elapsed=$((elapsed + INTERVAL))
+        done
         
         echo "Available Command Line Tools versions:"
         for i in "${!LABELS[@]}"; do
