@@ -84,11 +84,11 @@ install_xcode_tools() {
         XCLT_TMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
         sudo touch "$XCLT_TMP"
         
-        # Step 2: Find the latest Command Line Tools label
+        # Step 2: Find the latest Command Line Tools label using Label format
         LABEL=$(softwareupdate --list 2>/dev/null | \
-          grep -B 1 -E 'Command Line Tools' | \
-          awk -F'*' '/^ *\*/ {gsub(/^ *\* */, "", $0); print}' | \
-          sort | tail -n1)
+          grep -E 'Label: Command Line Tools' | \
+          sed -E 's/^ *Label: //g' | \
+          sort -V | tail -n1)
         
         if [ -z "$LABEL" ]; then
             print_error "Command Line Tools not found in softwareupdate list."
