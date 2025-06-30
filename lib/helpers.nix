@@ -70,7 +70,8 @@
       pkgs = unstablePkgs;
       extraSpecialArgs = {inherit inputs unstablePkgs username;};
       modules = [
-        ./../home/defaultHome.nix
+        inputs.nvf.homeManagerModules.default
+        ./../home/home.nix
       ];
     };
 }
