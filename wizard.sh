@@ -146,7 +146,7 @@ install_nix() {
         print_status "Installing Nix..."
         
         # Install Nix with official installer
-        sh <(curl -L https://nixos.org/nix/install) --daemon
+        sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
         
         if [ $? -eq 0 ]; then
             print_success "Nix installed successfully"
