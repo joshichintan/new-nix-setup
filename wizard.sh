@@ -86,9 +86,9 @@ install_xcode_tools() {
         
         # Step 2: Find the latest Command Line Tools label using Label format
         LABEL=$(softwareupdate --list 2>/dev/null | \
-          grep -E 'Label: Command Line Tools' | \
-          sed -E 's/^ *Label: //g' | \
-          sort -V | tail -n1)
+            grep -E 'Command Line Tools for Xcode' | \
+            sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
+            sort | tail -n1)
         
         if [ -z "$LABEL" ]; then
             print_error "Command Line Tools not found in softwareupdate list."
@@ -96,7 +96,7 @@ install_xcode_tools() {
             exit 1
         fi
         
-        print_status "Installing: $LABEL"
+        print_status "Installing: ==$LABEL=="
         sudo softwareupdate --install "$LABEL"
         
         # Step 3: Remove the temp file
