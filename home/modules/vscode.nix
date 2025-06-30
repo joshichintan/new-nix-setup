@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # VSCode configuration
   programs.vscode = {
     enable = true;
@@ -8,4 +11,4 @@
       editor.fontFamily = "MesloLGSDZ Nerd Font, monospace";
     };
   };
-} 
+}

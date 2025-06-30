@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # SSH configuration
   programs.ssh = {
     enable = true;
@@ -39,4 +42,4 @@
       # };
     };
   };
-} 
+}

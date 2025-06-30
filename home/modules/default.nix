@@ -12,4 +12,4 @@
     ./wezterm.nix
     ./ssh.nix
   ];
-} 
+}

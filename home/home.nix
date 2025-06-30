@@ -11,16 +11,16 @@
   home.stateVersion = "23.11";
   home.username = username;
   home.homeDirectory = "/Users/${username}";
-  
+
   # File configurations
   home.file = {
     # Aerospace configuration
-    ".config/aerospace/aerospace.toml".text = builtins.readFile ./aerospace/aerospace.toml;
-    
+    "${config.xdg.configHome}/aerospace/aerospace.toml".text = builtins.readFile ./aerospace/aerospace.toml;
+
     # Disable default .zshrc since we're using custom config
     ".zshrc".enable = false;
   };
-  
+
   # Session variables
   home.sessionVariables = {
     VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
@@ -41,4 +41,4 @@
   imports = [
     ./modules
   ];
-} 
+}

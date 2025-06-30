@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Wezterm configuration
   programs.wezterm = {
     enable = true;
@@ -57,4 +60,4 @@
       return config
     '';
   };
-} 
+}

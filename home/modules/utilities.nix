@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Utility programs
   programs.gpg.enable = true;
   programs.alacritty.enable = true;
@@ -46,4 +49,4 @@
   programs.bat.config.theme = "Nord";
 
   programs.zoxide.enable = true;
-} 
+}

@@ -4,4 +4,4 @@
     hostname = "chintan";
     username = "nix-darwin";
   };
-} 
+}

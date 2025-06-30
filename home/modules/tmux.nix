@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Tmux configuration
   programs.tmux = {
     enable = true;
@@ -25,4 +28,4 @@
       bind-key o run-shell "tmux-sessionx"
     '';
   };
-} 
+}

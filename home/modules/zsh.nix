@@ -1,10 +1,13 @@
-{ config, lib, pkgs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # Zsh configuration
   programs.zsh = {
     enable = true;
-    dotDir = ".config/zsh";
+    dotDir = ".config/zsh"; # make sure xdg.enable = true; in home config for this to work.
     history = {
       path = "$ZDOTDIR/.zsh_history";
       append = true;
@@ -18,10 +21,10 @@
       searchUpKey = ["^k"];
       searchDownKey = ["^j"];
     };
-    
+
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-    
+
     initContent = let
       p10kInstantPrompt = lib.mkOrder 500 ''
         if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]];
@@ -29,7 +32,7 @@
       '';
     in
       lib.mkMerge [p10kInstantPrompt];
-      
+
     plugins = [
       {
         name = "powerlevel10k-config";
@@ -37,7 +40,7 @@
         file = ".p10k.zsh";
       }
     ];
-    
+
     zplug = {
       enable = true;
       zplugHome = "${config.xdg.dataHome}/zplug";
@@ -52,7 +55,7 @@
         }
       ];
     };
-    
+
     shellAliases = {
       # Home Manager aliases (dynamic user/hostname detection)
       hm = "nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage";
@@ -75,4 +78,4 @@
       rebuild-system = "darwin"; # Rebuild only system
     };
   };
-} 
+}
