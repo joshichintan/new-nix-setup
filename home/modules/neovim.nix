@@ -165,6 +165,10 @@
         gruvbox-material = {package = pkgs.vimPlugins.gruvbox-material;};
       };
 
+      lazy = {
+        enable = true;
+      };
+
       # Custom Lua configuration (only for terminal detection)
       luaConfigRC.themeSetup = ''
         -- Terminal-specific colorscheme and termguicolors
