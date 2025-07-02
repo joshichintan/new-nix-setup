@@ -151,13 +151,13 @@
         enable = true;
       };
 
-      autocomplete.nvim-cmp.enable = true;
-      lsp.enable = true;
-      languages = {
-        enableTreesitter = true;
+      # autocomplete.nvim-cmp.enable = true;
+      # lsp.enable = true;
+      # languages = {
+      #   enableTreesitter = true;
 
-        python.enable = true;
-      };
+      #   python.enable = true;
+      # };
 
       # Plugins (converted from your current setup)
       extraPlugins = {
@@ -165,44 +165,84 @@
         gruvbox-material = {package = pkgs.vimPlugins.gruvbox-material;};
       };
 
-      lazy = {
-        enable = true;
-      };
+      utility = {
+        snacks-nvim = {
+          enable = true;
+          setupOpts = {
+            # picker = {enabled = true;};
+            # explorer = {enabled = true;};
+            # bigfile = {enabled = true;};
+            # debug = {enabled = true;};
+            # indent = {enabled = true;};
+            # image = {enabled = true;};
+            # notifier = {enabled = true;};
+            # scratch = {enabled = true;};
+            # statuscolumn = {enabled = false;};
+            # quickfile = {enabled = true;};
+            # zen = {enabled = true;};
+            dashboard = {
+              enabled = true;
 
-          utility = {
-      snacks-nvim = {
-        enable = true;
-        setupOpts = {
-          picker = {enabled = true;};
-          explorer = {enabled = true;};
-          bigfile = {enabled = true;};
-          debug = {enabled = true;};
-          indent = {enabled = true;};
-          image = {enabled = true;};
-          notifier = {enabled = true;};
-          scratch = {enabled = true;};
-          statuscolumn = {enabled = false;};
-          quickfile = {enabled = true;};
-          zen = {enabled = true;};
-          # dashboard = {enabled = true;};
+              sections = [
+                {section = "header";}
+                {
+                  section = "keys";
+                  gap = 1;
+                  padding = 1;
+                }
+              ];
+
+              preset.keys = [
+                {
+                  action = ":lua Snacks.dashboard.pick('files')";
+                  desc = " Find File";
+                  icon = " ";
+                  key = "f";
+                }
+                {
+                  action = ":lua Snacks.dashboard.pick('live_grep')";
+                  desc = " Find Text";
+                  icon = " ";
+                  key = "g";
+                }
+                {
+                  action = "ene | startinsert";
+                  desc = " New File";
+                  icon = " ";
+                  key = "n";
+                }
+                {
+                  action = ":lua Snacks.dashboard.pick('oldfiles')";
+                  desc = " Recent Files";
+                  icon = " ";
+                  key = "r";
+                }
+                {
+                  action = ":qa";
+                  desc = " Quit";
+                  icon = " ";
+                  key = "q";
+                }
+              ];
+            };
+          };
         };
+        #   # vim-wakatime.enable = true;
+        #   # Use snacks image so this is no needed.
+        #   # images = {
+        #   #   image-nvim = {
+        #   #     enable = true;
+        #   #     setupOpts = {
+        #   #       integrations = {
+        #   #         markdown.enable = true;
+        #   #       };
+        #   #     };
+        #   #   };
+        #   # };
+        #   # preview.markdownPreview = {
+        #   #   enable = true;
+        #   # };
       };
-      vim-wakatime.enable = true;
-      # Use snacks image so this is no needed.
-      # images = {
-      #   image-nvim = {
-      #     enable = true;
-      #     setupOpts = {
-      #       integrations = {
-      #         markdown.enable = true;
-      #       };
-      #     };
-      #   };
-      # };
-      preview.markdownPreview = {
-        enable = true;
-      };
-    };
 
       # Custom Lua configuration (only for terminal detection)
       luaConfigRC.themeSetup = ''
