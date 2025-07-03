@@ -177,6 +177,80 @@ install_rosetta() {
     fi
 }
 
+# Function to clone git repository
+clone_repo() {
+    local default_repo="https://github.com/joshichintan/new-nix-setup.git"
+    local repo_url=""
+    local repo_name=""
+    
+    print_status "Setting up git repository..."
+    
+    # Check if we're already in a git repository
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        print_success "Already in a git repository"
+        return 0
+    fi
+    
+    # Ask user for repository URL
+    echo
+    print_status "Repository setup:"
+    echo "  1) Use default repository: $default_repo"
+    echo "  2) Enter custom repository URL"
+    echo "  3) Skip repository setup"
+    echo
+    read -p "Enter your choice (1-3): " -n 1 -r
+    echo
+    
+    case $REPLY in
+        1)
+            repo_url="$default_repo"
+            repo_name="new-nix-setup"
+            ;;
+        2)
+            read -p "Enter repository URL: " repo_url
+            if [[ -z "$repo_url" ]]; then
+                print_error "Repository URL cannot be empty"
+                return 1
+            fi
+            # Extract repo name from URL
+            repo_name=$(basename "$repo_url" .git)
+            ;;
+        3)
+            print_status "Skipping repository setup"
+            return 0
+            ;;
+        *)
+            print_error "Invalid choice. Using default repository."
+            repo_url="$default_repo"
+            repo_name="new-nix-setup"
+            ;;
+    esac
+    
+    if [[ $DRY_RUN != true ]]; then
+        print_status "Cloning repository: $repo_url"
+        
+        # Clone the repository
+        if git clone "$repo_url"; then
+            print_success "Repository cloned successfully"
+            
+            # Change into the repository directory
+            if [[ -d "$repo_name" ]]; then
+                cd "$repo_name"
+                print_success "Changed directory to: $(pwd)"
+            else
+                print_error "Repository directory not found after cloning"
+                return 1
+            fi
+        else
+            print_error "Failed to clone repository"
+            return 1
+        fi
+    else
+        print_dry_run "Would clone repository: $repo_url"
+        print_dry_run "Would change directory to: $repo_name"
+    fi
+}
+
 # Function to install Nix
 install_nix() {
     if command_exists nix; then
@@ -507,6 +581,12 @@ main() {
         fi
         echo
         
+        ask_step_preference "Git Repository" "clone git repository and change directory"
+        if [[ $SKIP_INSTALL != true ]]; then
+            clone_repo
+        fi
+        echo
+        
         ask_step_preference "Nix" "check and install Nix with flakes"
         if [[ $SKIP_INSTALL != true ]]; then
             install_nix
@@ -530,6 +610,9 @@ main() {
         echo
         
         install_rosetta
+        echo
+        
+        clone_repo
         echo
         
         install_nix

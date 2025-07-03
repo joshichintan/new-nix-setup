@@ -17,9 +17,19 @@ This setup provides:
 
 Use the setup wizard for automatic installation:
 
+#### Method A: Direct Installation (One-liner)
+```bash
+# Fresh installation - runs everything automatically
+sh <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh)
+
+# Test run first (see what it would do)
+sh <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh) --dry-run
+```
+
+#### Method B: Clone and Run
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/joshichintan/new-nix-setup.git
 cd new-nix-setup
 
 # Make wizard executable
@@ -36,6 +46,7 @@ The wizard will:
 - Detect if you have a fresh or existing installation
 - Install Xcode Command Line Tools (no popups)
 - Install Rosetta 2 on Apple Silicon Macs
+- **Clone the repository and change directory** (if using Method A)
 - Install Nix with flakes enabled
 - Generate/update flake.nix with your username and hostname
 - Optionally run the build commands automatically
