@@ -186,7 +186,6 @@ ensure_repo_directory() {
     local config_dir="$HOME/.config"
     local current_dir=$(pwd)
     local found_dirs=()
-    local search_paths=("$current_dir" "$config_dir" "$HOME")
     
     print_status "Checking current directory..."
     print_status "Current directory: $current_dir"
@@ -197,34 +196,30 @@ ensure_repo_directory() {
         return 0
     fi
     
-    # Search for Nix configurations in multiple locations
-    print_status "Searching for Nix configurations..."
+    # Search for Nix configurations in .config directory
+    print_status "Searching for Nix configurations in ~/.config..."
     
-    for search_path in "${search_paths[@]}"; do
-        if [[ -d "$search_path" ]]; then
-            # Find all directories with Nix configuration files
-            while IFS= read -r -d '' dir; do
-                if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
-                    found_dirs+=("$dir")
-                fi
-            done < <(find "$search_path" -maxdepth 3 -type d -print0 2>/dev/null)
-        fi
-    done
+    if [[ -d "$config_dir" ]]; then
+        # Find all directories with Nix configuration files in .config
+        while IFS= read -r -d '' dir; do
+            if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
+                found_dirs+=("$dir")
+            fi
+        done < <(find "$config_dir" -maxdepth 2 -type d -print0 2>/dev/null)
+    fi
     
     # Remove duplicates and sort
     if [[ ${#found_dirs[@]} -gt 0 ]]; then
-        # Remove duplicates using associative array
-        local -A unique_dirs
+        # Deduplicate found_dirs (POSIX-compatible)
+        deduped_dirs=()
         for dir in "${found_dirs[@]}"; do
-            unique_dirs["$dir"]=1
+            skip=
+            for seen in "${deduped_dirs[@]}"; do
+                [ "$dir" = "$seen" ] && skip=1 && break
+            done
+            [ -z "$skip" ] && deduped_dirs+=("$dir")
         done
-        
-        # Convert back to array
-        found_dirs=()
-        for dir in "${!unique_dirs[@]}"; do
-            found_dirs+=("$dir")
-        done
-        
+        found_dirs=("${deduped_dirs[@]}")
         # Sort directories
         IFS=$'\n' found_dirs=($(sort <<<"${found_dirs[*]}"))
         unset IFS
