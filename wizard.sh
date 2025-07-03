@@ -189,12 +189,12 @@ ensure_repo_directory() {
     print_status "Searching for Nix configurations in ~/.config..."
 
     if [[ -d "$config_dir" ]]; then
-        # Find all directories with Nix configuration files in .config
+        # Find all directories with Nix configuration files in .config (not subdirectories)
         while IFS= read -r -d '' dir; do
             if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
                 found_dirs+=("$dir")
             fi
-        done < <(find "$config_dir" -maxdepth 2 -type d -print0 2>/dev/null)
+        done < <(find "$config_dir" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
     fi
 
     # Deduplicate found_dirs (POSIX-compatible)
@@ -213,7 +213,7 @@ ensure_repo_directory() {
         unset IFS
     fi
 
-    # If multiple directories found, ask user to choose
+    # If multiple directories found, ask user to choose or install new config
     if [[ ${#found_dirs[@]} -gt 1 ]]; then
         echo
         print_status "Found multiple Nix configuration directories in ~/.config:"
@@ -227,15 +227,19 @@ ensure_repo_directory() {
             fi
             printf "  [%d] %s%s\n" "$((i+1))" "${found_dirs[$i]}" "$dir_info"
         done
+        echo "  [N] Install new config (clone a new repo)"
         echo
-        read -p "Enter the number of the directory to use [1]: " -n 1 -r
+        read -p "Enter the number of the directory to use or N for new config [1]: " REPLY
         echo
 
         if [[ -z "$REPLY" ]]; then
             REPLY=1
         fi
 
-        if [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#found_dirs[@]} )); then
+        if [[ "$REPLY" =~ ^[Nn]$ ]]; then
+            print_status "User chose to install a new config."
+            return 1
+        elif [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#found_dirs[@]} )); then
             local selected_dir="${found_dirs[$((REPLY-1))]}"
             print_status "Selected directory: $selected_dir"
             cd "$selected_dir"
@@ -246,12 +250,27 @@ ensure_repo_directory() {
             return 1
         fi
     elif [[ ${#found_dirs[@]} -eq 1 ]]; then
-        # Single directory found, use it automatically
+        # Single directory found, offer to use or install new config
         local selected_dir="${found_dirs[0]}"
+        echo
         print_status "Found Nix configuration: $selected_dir"
-        cd "$selected_dir"
-        print_success "Changed directory to: $(pwd)"
-        return 0
+        echo "  [1] Use this config"
+        echo "  [N] Install new config (clone a new repo)"
+        echo
+        read -p "Enter 1 to use this config or N for new config [1]: " REPLY
+        echo
+        if [[ -z "$REPLY" || "$REPLY" == "1" ]]; then
+            print_status "Selected directory: $selected_dir"
+            cd "$selected_dir"
+            print_success "Changed directory to: $(pwd)"
+            return 0
+        elif [[ "$REPLY" =~ ^[Nn]$ ]]; then
+            print_status "User chose to install a new config."
+            return 1
+        else
+            print_error "Invalid selection"
+            return 1
+        fi
     fi
 
     return 1
@@ -320,28 +339,16 @@ clone_repo() {
             mkdir -p "$config_dir"
         fi
         
-        # Check if repository already exists
+        # If the target directory exists, back it up before cloning
         if [[ -d "$repo_dir" ]]; then
-            print_status "Repository already exists at: $repo_dir"
-            print_status "Checking if it's a valid git repository..."
-            
-            if [[ -d "$repo_dir/.git" ]]; then
-                print_success "Valid git repository found"
-                cd "$repo_dir"
-                print_success "Changed directory to: $(pwd)"
-                return 0
-            else
-                print_warning "Directory exists but is not a git repository"
-                read -p "Do you want to remove it and clone fresh? (y/N): " -n 1 -r
-                echo
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    print_status "Removing existing directory..."
-                    rm -rf "$repo_dir"
-                else
-                    print_status "Skipping repository setup"
-                    return 0
-                fi
-            fi
+            local bak_dir="${repo_dir}-bak"
+            local bak_index=1
+            while [[ -d "$bak_dir" ]]; do
+                bak_dir="${repo_dir}-bak-$bak_index"
+                bak_index=$((bak_index + 1))
+            done
+            print_status "Backing up existing directory: $repo_dir -> $bak_dir"
+            mv "$repo_dir" "$bak_dir"
         fi
         
         # Clone the repository into .config directory
@@ -363,6 +370,7 @@ clone_repo() {
         fi
     else
         print_dry_run "Would create .config directory if needed"
+        print_dry_run "Would back up $repo_dir to $repo_dir-bak (or -bak-N if needed) if it exists"
         print_dry_run "Would clone repository: $repo_url"
         print_dry_run "Would clone into: $repo_dir"
         print_dry_run "Would change directory to: $repo_dir"
@@ -371,16 +379,16 @@ clone_repo() {
 
 # Function to install Nix
 install_nix() {
-    if command_exists nix; then
-        print_success "Nix already installed"
-        return 0
-    fi
     
     if [[ $DRY_RUN != true ]]; then
         print_status "Installing Nix..."
         
         # Install Nix with official installer
-        sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
+        if command_exists nix; then
+            print_success "Nix already installed"
+        else
+            sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
+        fi
         
         if [ $? -eq 0 ]; then
             print_success "Nix installed successfully"
@@ -705,15 +713,6 @@ main() {
     
     # Ask user for installation preference
     ask_installation_preference
-    
-    # Check and ensure we're in the correct directory before proceeding
-    print_status "Checking working directory..."
-    if ensure_repo_directory; then
-        print_success "Working directory is ready for Nix operations"
-    else
-        print_warning "Not in a Nix configuration directory - will clone repository later"
-    fi
-    echo
     
     # Always go through all installation steps
     # Each function will check if already installed and skip if needed
