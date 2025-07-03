@@ -101,7 +101,11 @@ install_xcode_tools() {
         INTERVAL=3
         elapsed=0
         while true; do
-            mapfile -t LABELS < <(softwareupdate --list 2>/dev/null | \
+            # Use POSIX-compatible array building instead of mapfile
+            LABELS=()
+            while IFS= read -r line; do
+                LABELS+=("$line")
+            done < <(softwareupdate --list 2>/dev/null | \
                 grep -E 'Label: Command Line Tools for Xcode' | \
                 sed -E 's/^.*Label: *//; s/^ *//; s/ *$//' | \
                 sort -V)
