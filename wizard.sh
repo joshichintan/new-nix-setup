@@ -181,17 +181,133 @@ install_rosetta() {
     fi
 }
 
+# Function to ensure we're in the correct repository directory
+ensure_repo_directory() {
+    local config_dir="$HOME/.config"
+    local current_dir=$(pwd)
+    local found_dirs=()
+    local search_paths=("$current_dir" "$config_dir" "$HOME")
+    
+    print_status "Checking current directory..."
+    print_status "Current directory: $current_dir"
+    
+    # Check if we're in a git repository
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        print_success "Already in a git repository"
+        return 0
+    fi
+    
+    # Search for Nix configurations in multiple locations
+    print_status "Searching for Nix configurations..."
+    
+    for search_path in "${search_paths[@]}"; do
+        if [[ -d "$search_path" ]]; then
+            # Find all directories with Nix configuration files
+            while IFS= read -r -d '' dir; do
+                if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
+                    found_dirs+=("$dir")
+                fi
+            done < <(find "$search_path" -maxdepth 3 -type d -print0 2>/dev/null)
+        fi
+    done
+    
+    # Remove duplicates and sort
+    if [[ ${#found_dirs[@]} -gt 0 ]]; then
+        # Remove duplicates using associative array
+        local -A unique_dirs
+        for dir in "${found_dirs[@]}"; do
+            unique_dirs["$dir"]=1
+        done
+        
+        # Convert back to array
+        found_dirs=()
+        for dir in "${!unique_dirs[@]}"; do
+            found_dirs+=("$dir")
+        done
+        
+        # Sort directories
+        IFS=$'\n' found_dirs=($(sort <<<"${found_dirs[*]}"))
+        unset IFS
+    fi
+    
+    # If multiple directories found, ask user to choose
+    if [[ ${#found_dirs[@]} -gt 1 ]]; then
+        echo
+        print_status "Found multiple Nix configuration directories:"
+        for i in "${!found_dirs[@]}"; do
+            local dir_info=""
+            if [[ -d "${found_dirs[$i]}/.git" ]]; then
+                dir_info=" (git repository)"
+            fi
+            if [[ -f "${found_dirs[$i]}/flake.nix" ]]; then
+                dir_info+=" (has flake.nix)"
+            fi
+            printf "  [%d] %s%s\n" "$((i+1))" "${found_dirs[$i]}" "$dir_info"
+        done
+        echo
+        read -p "Enter the number of the directory to use [1]: " -n 1 -r
+        echo
+        
+        if [[ -z "$REPLY" ]]; then
+            REPLY=1
+        fi
+        
+        if [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#found_dirs[@]} )); then
+            local selected_dir="${found_dirs[$((REPLY-1))]}"
+            print_status "Selected directory: $selected_dir"
+            cd "$selected_dir"
+            print_success "Changed directory to: $(pwd)"
+            return 0
+        else
+            print_error "Invalid selection"
+            return 1
+        fi
+    elif [[ ${#found_dirs[@]} -eq 1 ]]; then
+        # Single directory found, use it automatically
+        local selected_dir="${found_dirs[0]}"
+        print_status "Found Nix configuration: $selected_dir"
+        cd "$selected_dir"
+        print_success "Changed directory to: $(pwd)"
+        return 0
+    fi
+    
+    # Check if we're in a .config subdirectory that might be a repo
+    if [[ "$current_dir" == *"/.config/"* ]]; then
+        # Look for git repositories in current directory or parent directories
+        local search_dir="$current_dir"
+        while [[ "$search_dir" != "$HOME" && "$search_dir" != "/" ]]; do
+            if [[ -d "$search_dir/.git" ]]; then
+                print_status "Found git repository in: $search_dir"
+                cd "$search_dir"
+                print_success "Changed directory to: $(pwd)"
+                return 0
+            fi
+            search_dir=$(dirname "$search_dir")
+        done
+    fi
+    
+    # Check if we're in a directory that looks like a Nix configuration
+    if [[ -f "flake.nix" ]] || [[ -f "hosts.nix" ]] || [[ -f "home.nix" ]]; then
+        print_success "Found Nix configuration files in current directory"
+        return 0
+    fi
+    
+    return 1
+}
+
 # Function to clone git repository
 clone_repo() {
     local default_repo="https://github.com/joshichintan/new-nix-setup.git"
     local repo_url=""
     local repo_name=""
+    local config_dir="$HOME/.config"
+    local repo_dir=""
     
     print_status "Setting up git repository..."
     
-    # Check if we're already in a git repository
-    if git rev-parse --git-dir > /dev/null 2>&1; then
-        print_success "Already in a git repository"
+    # First, try to ensure we're in the correct directory
+    if ensure_repo_directory; then
+        print_success "Repository directory is ready"
         return 0
     fi
     
@@ -230,16 +346,50 @@ clone_repo() {
             ;;
     esac
     
+    # Set the full repository directory path
+    repo_dir="$config_dir/$repo_name"
+    
     if [[ $DRY_RUN != true ]]; then
-        print_status "Cloning repository: $repo_url"
+        print_status "Setting up repository in: $repo_dir"
         
-        # Clone the repository
-        if git clone "$repo_url"; then
+        # Create .config directory if it doesn't exist
+        if [[ ! -d "$config_dir" ]]; then
+            print_status "Creating .config directory..."
+            mkdir -p "$config_dir"
+        fi
+        
+        # Check if repository already exists
+        if [[ -d "$repo_dir" ]]; then
+            print_status "Repository already exists at: $repo_dir"
+            print_status "Checking if it's a valid git repository..."
+            
+            if [[ -d "$repo_dir/.git" ]]; then
+                print_success "Valid git repository found"
+                cd "$repo_dir"
+                print_success "Changed directory to: $(pwd)"
+                return 0
+            else
+                print_warning "Directory exists but is not a git repository"
+                read -p "Do you want to remove it and clone fresh? (y/N): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    print_status "Removing existing directory..."
+                    rm -rf "$repo_dir"
+                else
+                    print_status "Skipping repository setup"
+                    return 0
+                fi
+            fi
+        fi
+        
+        # Clone the repository into .config directory
+        print_status "Cloning repository: $repo_url"
+        if git clone "$repo_url" "$repo_dir"; then
             print_success "Repository cloned successfully"
             
             # Change into the repository directory
-            if [[ -d "$repo_name" ]]; then
-                cd "$repo_name"
+            if [[ -d "$repo_dir" ]]; then
+                cd "$repo_dir"
                 print_success "Changed directory to: $(pwd)"
             else
                 print_error "Repository directory not found after cloning"
@@ -250,8 +400,10 @@ clone_repo() {
             return 1
         fi
     else
+        print_dry_run "Would create .config directory if needed"
         print_dry_run "Would clone repository: $repo_url"
-        print_dry_run "Would change directory to: $repo_name"
+        print_dry_run "Would clone into: $repo_dir"
+        print_dry_run "Would change directory to: $repo_dir"
     fi
 }
 
@@ -271,9 +423,24 @@ install_nix() {
         if [ $? -eq 0 ]; then
             print_success "Nix installed successfully"
             
-            # Source nix environment
-            if [ -f /etc/nix/nix.conf ]; then
-                . /etc/nix/nix.conf
+            # Source Nix environment for current session
+            print_status "Setting up Nix environment..."
+            
+            # Source the Nix environment
+            if [ -f /etc/zshrc ]; then
+                # For zsh (macOS default)
+                . /etc/zshrc
+            elif [ -f /etc/bashrc ]; then
+                # For bash
+                . /etc/bashrc
+            elif [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+                # Direct Nix profile
+                . ~/.nix-profile/etc/profile.d/nix.sh
+            fi
+            
+            # Also try to source from common locations
+            if [ -f /etc/profile.d/nix.sh ]; then
+                . /etc/profile.d/nix.sh
             fi
             
             # Enable flakes
@@ -282,6 +449,14 @@ install_nix() {
             echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
             
             print_success "Nix flakes enabled"
+            
+            # Verify Nix is available
+            if command_exists nix; then
+                print_success "Nix command is available"
+            else
+                print_warning "Nix command not found in PATH, you may need to restart your terminal"
+                print_status "You can also run: source ~/.nix-profile/etc/profile.d/nix.sh"
+            fi
         else
             print_error "Failed to install Nix"
             exit 1
@@ -567,6 +742,15 @@ main() {
     
     # Ask user for installation preference
     ask_installation_preference
+    
+    # Check and ensure we're in the correct directory before proceeding
+    print_status "Checking working directory..."
+    if ensure_repo_directory; then
+        print_success "Working directory is ready for Nix operations"
+    else
+        print_warning "Not in a Nix configuration directory - will clone repository later"
+    fi
+    echo
     
     # Always go through all installation steps
     # Each function will check if already installed and skip if needed
