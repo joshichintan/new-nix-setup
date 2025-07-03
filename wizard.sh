@@ -191,6 +191,11 @@ ensure_repo_directory() {
     if [[ -d "$config_dir" ]]; then
         # Find all directories with Nix configuration files in .config (not subdirectories)
         while IFS= read -r -d '' dir; do
+            # Skip backup directories ending with -bak or -bak-N
+            base_dir="$(basename "$dir")"
+            if [[ "$base_dir" =~ -bak($|-[0-9]+$) ]]; then
+                continue
+            fi
             if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
                 found_dirs+=("$dir")
             fi
