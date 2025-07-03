@@ -184,21 +184,10 @@ install_rosetta() {
 # Function to ensure we're in the correct repository directory
 ensure_repo_directory() {
     local config_dir="$HOME/.config"
-    local current_dir=$(pwd)
     local found_dirs=()
-    
-    print_status "Checking current directory..."
-    print_status "Current directory: $current_dir"
-    
-    # Check if we're in a git repository
-    if git rev-parse --git-dir > /dev/null 2>&1; then
-        print_success "Already in a git repository"
-        return 0
-    fi
-    
-    # Search for Nix configurations in .config directory
+
     print_status "Searching for Nix configurations in ~/.config..."
-    
+
     if [[ -d "$config_dir" ]]; then
         # Find all directories with Nix configuration files in .config
         while IFS= read -r -d '' dir; do
@@ -207,10 +196,9 @@ ensure_repo_directory() {
             fi
         done < <(find "$config_dir" -maxdepth 2 -type d -print0 2>/dev/null)
     fi
-    
-    # Remove duplicates and sort
+
+    # Deduplicate found_dirs (POSIX-compatible)
     if [[ ${#found_dirs[@]} -gt 0 ]]; then
-        # Deduplicate found_dirs (POSIX-compatible)
         deduped_dirs=()
         for dir in "${found_dirs[@]}"; do
             skip=
@@ -224,11 +212,11 @@ ensure_repo_directory() {
         IFS=$'\n' found_dirs=($(sort <<<"${found_dirs[*]}"))
         unset IFS
     fi
-    
+
     # If multiple directories found, ask user to choose
     if [[ ${#found_dirs[@]} -gt 1 ]]; then
         echo
-        print_status "Found multiple Nix configuration directories:"
+        print_status "Found multiple Nix configuration directories in ~/.config:"
         for i in "${!found_dirs[@]}"; do
             local dir_info=""
             if [[ -d "${found_dirs[$i]}/.git" ]]; then
@@ -242,11 +230,11 @@ ensure_repo_directory() {
         echo
         read -p "Enter the number of the directory to use [1]: " -n 1 -r
         echo
-        
+
         if [[ -z "$REPLY" ]]; then
             REPLY=1
         fi
-        
+
         if [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#found_dirs[@]} )); then
             local selected_dir="${found_dirs[$((REPLY-1))]}"
             print_status "Selected directory: $selected_dir"
@@ -265,28 +253,7 @@ ensure_repo_directory() {
         print_success "Changed directory to: $(pwd)"
         return 0
     fi
-    
-    # Check if we're in a .config subdirectory that might be a repo
-    if [[ "$current_dir" == *"/.config/"* ]]; then
-        # Look for git repositories in current directory or parent directories
-        local search_dir="$current_dir"
-        while [[ "$search_dir" != "$HOME" && "$search_dir" != "/" ]]; do
-            if [[ -d "$search_dir/.git" ]]; then
-                print_status "Found git repository in: $search_dir"
-                cd "$search_dir"
-                print_success "Changed directory to: $(pwd)"
-                return 0
-            fi
-            search_dir=$(dirname "$search_dir")
-        done
-    fi
-    
-    # Check if we're in a directory that looks like a Nix configuration
-    if [[ -f "flake.nix" ]] || [[ -f "hosts.nix" ]] || [[ -f "home.nix" ]]; then
-        print_success "Found Nix configuration files in current directory"
-        return 0
-    fi
-    
+
     return 1
 }
 
