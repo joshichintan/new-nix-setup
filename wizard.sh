@@ -605,7 +605,8 @@ run_build_commands() {
     
     print_status "1. Updating flake..."
     if [[ $DRY_RUN != true ]]; then
-        nix flake update
+        # nix flake update
+        echo "nix flake update --skipped for now"
     else
         print_dry_run "Would run: nix flake update"
     fi
