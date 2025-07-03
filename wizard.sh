@@ -402,15 +402,11 @@ install_nix() {
             print_status "Setting up Nix environment..."
             
             # Source the Nix environment
-            if [ -f /etc/zshrc ]; then
-                # For zsh (macOS default)
-                . /etc/zshrc
-            elif [ -f /etc/bashrc ]; then
-                # For bash
-                . /etc/bashrc
-            elif [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+            if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
                 # Direct Nix profile
                 . ~/.nix-profile/etc/profile.d/nix.sh
+            elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+                . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
             fi
             
             # Also try to source from common locations
