@@ -674,7 +674,30 @@ ask_step_preference() {
 main() {
     print_status "Nix Setup Wizard Starting..."
     print_status "Checking system and running all necessary installations..."
-    
+
+    # Housekeeping: Ask about hostname
+    local current_hostname=$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d'.' -f1)
+    echo
+    print_status "Current system hostname: $current_hostname"
+    read -p "Do you want to change the hostname? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "Enter new hostname: " new_hostname
+        if [[ -n "$new_hostname" ]]; then
+            if [[ $DRY_RUN == true ]]; then
+                print_dry_run "Would run: sudo scutil --set LocalHostName $new_hostname"
+            else
+                print_status "Setting new hostname to: $new_hostname"
+                sudo scutil --set LocalHostName "$new_hostname"
+                print_success "Hostname set to: $new_hostname"
+            fi
+        else
+            print_warning "No hostname entered. Keeping existing hostname: $current_hostname"
+        fi
+    else
+        print_status "Keeping existing hostname: $current_hostname"
+    fi
+
     # Ask user for installation preference
     ask_installation_preference
     
