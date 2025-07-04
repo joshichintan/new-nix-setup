@@ -177,7 +177,7 @@ install_xcode_tools() {
         done
         
         read -p "Enter the number of the version to install [${#LABELS[@]}]: " CHOICE
-        clear_prompt_block $(( ${#LABELS[@]} + 2 ))
+        clear_prompt_block 2
         if [[ -z "$CHOICE" ]]; then
             CHOICE=${#LABELS[@]}  # Default to the latest
         fi
@@ -756,7 +756,7 @@ main() {
 
     step_num=1
     wizard_step_begin $step_num "Install Xcode Command Line Tools"
-    ask_step_preference "Install Xcode Command Line Tools" "check and install Xcode Command Line Tools"
+    ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
     local xcode_status="ok"
     if [[ $SKIP_INSTALL != true ]]; then
         if ! install_xcode_tools; then
