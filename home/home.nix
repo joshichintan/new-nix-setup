@@ -24,7 +24,7 @@
   # Session variables
   home.sessionVariables = {
     VSCODE_EXTENSIONS = "${config.xdg.dataHome}/vscode/extensions";
-    NIX_USER_CONFIG_PATH = "~/.config/nix-config";
+    NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
   };
 
   # allow home-manager to manager itself
