@@ -32,8 +32,8 @@ The wizard will:
 - Install Xcode Command Line Tools (no popups)
 - Install Rosetta 2 on Apple Silicon Macs
 - Install Nix with flakes enabled
-- Clone the repository to `~/.config/new-nix-setup` (or your preferred location)
-- Set up `NIX_USER_CONFIG_PATH` environment variable
+- Clone the repository to `~/.config/nix-config` (always this directory name)
+- Set up `NIX_USER_CONFIG_PATH` environment variable via Home Manager
 - Generate/update flake.nix with your username and hostname
 - Optionally run the build commands automatically
 
@@ -48,7 +48,7 @@ The wizard will:
 ### Initial Setup
 
 1. **Install Nix with flakes enabled** (if not already installed)
-2. **Clone the repository** to your preferred location (e.g., `~/.config/new-nix-setup`)
+2. **Clone the repository** to `~/.config/nix-config` (this directory name is required)
 3. **Apply system configuration:**
    ```bash
    # Build and switch to nix-darwin configuration
@@ -60,6 +60,24 @@ The wizard will:
    # Apply user configuration (standalone)
    nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
    ```
+
+## Environment Setup
+
+### NIX_USER_CONFIG_PATH
+
+This setup uses the `NIX_USER_CONFIG_PATH` environment variable to point to your configuration directory. This variable is managed by Home Manager and is set to `~/.config/nix-config`.
+
+**Important**: The repository must be cloned to `~/.config/nix-config` for this setup to work correctly.
+
+#### Manual Setup (if not using wizard)
+```bash
+# Clone to the correct directory
+git clone https://github.com/joshichintan/new-nix-setup.git ~/.config/nix-config
+
+# The environment variable is managed by Home Manager in home/home.nix
+# Rebuild your home configuration to apply:
+hm
+```
 
 ## System and User Configuration
 

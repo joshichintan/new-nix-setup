@@ -226,9 +226,8 @@ check_existing_config() {
 clone_repo() {
     local default_repo="https://github.com/joshichintan/new-nix-setup.git"
     local repo_url=""
-    local repo_name=""
     local config_dir="$HOME/.config"
-    local repo_dir=""
+    local repo_dir="$config_dir/nix-config"
     
     print_status "Setting up git repository..."
     
@@ -251,7 +250,6 @@ clone_repo() {
     case $REPLY in
         1)
             repo_url="$default_repo"
-            repo_name="new-nix-setup"
             ;;
         2)
             read -p "Enter repository URL: " repo_url
@@ -259,8 +257,6 @@ clone_repo() {
                 print_error "Repository URL cannot be empty"
                 return 1
             fi
-            # Extract repo name from URL
-            repo_name=$(basename "$repo_url" .git)
             ;;
         3)
             print_status "Skipping repository setup"
@@ -269,15 +265,12 @@ clone_repo() {
         *)
             print_error "Invalid choice. Using default repository."
             repo_url="$default_repo"
-            repo_name="new-nix-setup"
             ;;
     esac
     
-    # Set the full repository directory path
-    repo_dir="$config_dir/$repo_name"
-    
     if [[ $DRY_RUN != true ]]; then
         print_status "Setting up repository in: $repo_dir"
+        print_status "Note: Repository will be cloned to 'nix-config' directory to match NIX_USER_CONFIG_PATH"
         
         # Create .config directory if it doesn't exist
         if [[ ! -d "$config_dir" ]]; then
@@ -297,13 +290,11 @@ clone_repo() {
             mv "$repo_dir" "$bak_dir"
         fi
         
-        # Clone the repository into .config directory
+        # Clone the repository into .config/nix-config directory
         print_status "Cloning repository: $repo_url"
         if git clone "$repo_url" "$repo_dir"; then
             print_success "Repository cloned successfully"
-            
-                    # Repository is now ready at: $repo_dir
-        print_success "Repository ready at: $repo_dir"
+            print_success "Repository ready at: $repo_dir"
         else
             print_error "Failed to clone repository"
             return 1
@@ -312,7 +303,7 @@ clone_repo() {
         print_dry_run "Would create .config directory if needed"
         print_dry_run "Would back up $repo_dir to $repo_dir-bak (or -bak-N if needed) if it exists"
         print_dry_run "Would clone repository: $repo_url"
-        print_dry_run "Would clone into: $repo_dir"
+        print_dry_run "Would clone into: $repo_dir (always 'nix-config' directory)"
     fi
     
     # Update NIX_USER_CONFIG_PATH after successful clone
@@ -324,41 +315,15 @@ clone_repo() {
 # Function to update NIX_USER_CONFIG_PATH in nix.conf
 update_nix_config_path() {
     local new_config_path="$1"
-    local nix_conf_dir="$HOME/.config/nix"
-    local nix_conf_file="$nix_conf_dir/nix.conf"
     
-    print_status "Updating NIX_USER_CONFIG_PATH to: $new_config_path"
+    # Set the environment variable for the current session
+    export NIX_USER_CONFIG_PATH="$new_config_path"
     
-    if [[ $DRY_RUN != true ]]; then
-        # Create nix config directory if it doesn't exist
-        if [[ ! -d "$nix_conf_dir" ]]; then
-            print_status "Creating Nix config directory: $nix_conf_dir"
-            mkdir -p "$nix_conf_dir"
-        fi
-        
-        # Remove existing NIX_USER_CONFIG_PATH line if it exists
-        if [[ -f "$nix_conf_file" ]]; then
-            print_status "Updating existing nix.conf file"
-            # Create a temporary file without the old NIX_USER_CONFIG_PATH line
-            grep -v "NIX_USER_CONFIG_PATH" "$nix_conf_file" > "${nix_conf_file}.tmp" 2>/dev/null || true
-            mv "${nix_conf_file}.tmp" "$nix_conf_file"
-        fi
-        
-        # Add the new NIX_USER_CONFIG_PATH
-        print_status "Adding NIX_USER_CONFIG_PATH to $nix_conf_file"
-        echo "" >> "$nix_conf_file"
-        echo "# Nix user configuration path" >> "$nix_conf_file"
-        echo "export NIX_USER_CONFIG_PATH=\"$new_config_path\"" >> "$nix_conf_file"
-        print_success "NIX_USER_CONFIG_PATH updated to: $new_config_path"
-        
-        # Also suggest adding to shell profile
-        print_status "Consider adding to your shell profile (~/.zshrc, ~/.bashrc):"
-        print_status "  export NIX_USER_CONFIG_PATH=\"$new_config_path\""
-    else
-        print_dry_run "Would create Nix config directory: $nix_conf_dir"
-        print_dry_run "Would update $nix_conf_file with NIX_USER_CONFIG_PATH=\"$new_config_path\""
-        print_dry_run "Would suggest adding to shell profile"
-    fi
+    print_status "Repository cloned to: $new_config_path"
+    print_success "NIX_USER_CONFIG_PATH is set to: $new_config_path"
+    print_status "Note: Environment variable is managed by Home Manager in home/home.nix"
+    print_status "You can rebuild your home configuration to apply changes:"
+    print_status "  hm"
 }
 
 # Function to install Nix
