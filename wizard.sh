@@ -382,45 +382,42 @@ install_nix() {
             fi
         fi
             
-            # Source Nix environment for current session
-            print_status "Setting up Nix environment..."
-            
-            # Source the Nix environment
-            if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
-                # Direct Nix profile
-                . ~/.nix-profile/etc/profile.d/nix.sh
-            elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
-                . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-            fi
-            
-            # Also try to source from common locations
-            if [ -f /etc/profile.d/nix.sh ]; then
-                . /etc/profile.d/nix.sh
-            fi
-            
-            # Enable flakes
-            print_status "Enabling Nix flakes..."
-            mkdir -p ~/.config/nix
-            
-            # Check if experimental features are already configured
-            if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
-                print_success "Nix flakes already enabled"
-            else
-                echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-                print_success "Nix flakes enabled"
-            fi
-            
-            # Verify Nix is available
-            if command_exists nix; then
-                print_success "Nix command is available"
-            else
-                print_warning "Nix command not found in PATH, you may need to restart your terminal"
-                print_status "You can also run: source ~/.nix-profile/etc/profile.d/nix.sh"
-            fi
-        else
-            print_error "Failed to install Nix"
-            exit 1
+        # Source Nix environment for current session
+        print_status "Setting up Nix environment..."
+        
+        # Source the Nix environment
+        if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+            # Direct Nix profile
+            . ~/.nix-profile/etc/profile.d/nix.sh
+        elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+            . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
         fi
+        
+        # Also try to source from common locations
+        if [ -f /etc/profile.d/nix.sh ]; then
+            . /etc/profile.d/nix.sh
+        fi
+        
+        # Enable flakes
+        print_status "Enabling Nix flakes..."
+        mkdir -p ~/.config/nix
+        
+        # Check if experimental features are already configured
+        if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
+            print_success "Nix flakes already enabled"
+        else
+            echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+            print_success "Nix flakes enabled"
+        fi
+        
+        # Verify Nix is available
+        if command_exists nix; then
+            print_success "Nix command is available"
+        else
+            print_warning "Nix command not found in PATH, you may need to restart your terminal"
+            print_status "You can also run: source ~/.nix-profile/etc/profile.d/nix.sh"
+        fi
+
     else
         if command_exists nix; then
             print_dry_run "Would check Nix installation (already installed)"
