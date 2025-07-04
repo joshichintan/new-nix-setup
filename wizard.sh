@@ -9,6 +9,9 @@ DRY_RUN=false
 SKIP_INSTALL=false
 INTERACTIVE=false
 
+# Global array to store warnings/errors for the current step
+wizard_log=()
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -40,16 +43,60 @@ print_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
+# Record cursor position and print step label with gray circle
+wizard_step_begin() {
+    local num="$1"
+    local label="$2"
+    # Save cursor position
+    tput sc
+    # Clear wizard_log array
+    wizard_log=()
+    # Print the label with a gray circle
+    local CIRCLE="\033[1;30m●${NC}"
+    printf "\033[K %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
+}
+
+# Restore cursor, update label with status, print warnings/errors
+wizard_step_end() {
+    local num="$1"
+    local label="$2"
+    local status="$3" # ok, fail, skip, warn
+    # Restore cursor to label
+    tput rc
+    local symbol=""
+    case "$status" in
+        ok)   symbol="${GREEN}✓${NC}";;
+        fail) symbol="${RED}✗${NC}";;
+        skip) symbol="${YELLOW}–${NC}";;
+        warn) symbol="${YELLOW}!${NC}";;
+    esac
+    printf " %s. %-30s %b\033[K\n" "$num" "$label" "$symbol"
+    # Print all warnings/errors
+    for msg in "${wizard_log[@]}"; do
+        echo -e "    $msg\033[K\r"
+    done
+}
+
+# Modified print_warning and print_error to append to wizard_log
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local msg="${YELLOW}[WARNING]${NC} $1"
+    echo -e "$msg"
+    wizard_log+=("$msg")
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local msg="${RED}[ERROR]${NC} $1"
+    echo -e "$msg"
+    wizard_log+=("$msg")
 }
 
-print_dry_run() {
-    echo -e "${YELLOW}[DRY RUN]${NC} $1"
+# For prompts: after reading input, clear the prompt block (all lines)
+clear_prompt_block() {
+    local lines=$1
+    for ((i=0; i<lines; i++)); do
+        tput cuu1
+        tput el
+    done
 }
 
 # Function to check if command exists
@@ -130,6 +177,7 @@ install_xcode_tools() {
         done
         
         read -p "Enter the number of the version to install [${#LABELS[@]}]: " CHOICE
+        clear_prompt_block $(( ${#LABELS[@]} + 2 ))
         if [[ -z "$CHOICE" ]]; then
             CHOICE=${#LABELS[@]}  # Default to the latest
         fi
@@ -195,10 +243,11 @@ check_existing_config() {
             
             echo
             print_status "Existing configuration detected:"
-            echo "  [1] Use existing config (change to directory)"
-            echo "  [N] Install new config (clone a new repo)"
+            echo "  1) Use existing config (change to directory)"
+            echo "  2) Install new config (clone a new repo)"
             echo
             read -p "Enter 1 to use existing config or N for new config [1]: " REPLY
+            clear_prompt_block 6
             echo
             
             if [[ -z "$REPLY" || "$REPLY" == "1" ]]; then
@@ -245,6 +294,7 @@ clone_repo() {
     echo "  3) Skip repository setup"
     echo
     read -p "Enter your choice (1-3): " -n 1 -r
+    clear_prompt_block 6
     echo
     
     case $REPLY in
@@ -253,6 +303,7 @@ clone_repo() {
             ;;
         2)
             read -p "Enter repository URL: " repo_url
+            clear_prompt_block 1
             if [[ -z "$repo_url" ]]; then
                 print_error "Repository URL cannot be empty"
                 return 1
@@ -612,6 +663,7 @@ ask_installation_preference() {
     echo "  2) Interactive mode (ask at each step)"
     echo
     read -p "Enter your choice (1-2): " -n 1 -r
+    clear_prompt_block 6
     echo
     
     case $REPLY in
@@ -644,6 +696,7 @@ ask_step_preference() {
     echo "  3) Dry run (show what would be done)"
     echo
     read -p "Enter your choice (1-3): " -n 1 -r
+    clear_prompt_block 6
     echo
     
     case $REPLY in
@@ -676,6 +729,7 @@ prompt_and_set_hostname() {
     echo
     print_status "Current system hostname: $current_hostname"
     read -p "Enter new hostname (or press Enter to keep current): " new_hostname
+    clear_prompt_block 1
     if [[ -n "$new_hostname" ]]; then
         if [[ $DRY_RUN == true ]]; then
             print_dry_run "Would run: sudo scutil --set LocalHostName $new_hostname"
@@ -699,83 +753,85 @@ main() {
 
     # Ask user for installation preference
     ask_installation_preference
-    
-    # Always go through all installation steps
-    # Each function will check if already installed and skip if needed
-    
-    if [[ $INTERACTIVE == true ]]; then
-        # Interactive mode - ask at each step
-        ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
-        if [[ $SKIP_INSTALL != true ]]; then
-            install_xcode_tools
+
+    step_num=1
+    wizard_step_begin $step_num "Install Xcode Command Line Tools"
+    ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
+    local xcode_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! install_xcode_tools; then
+            xcode_status="fail"
         fi
-        echo
-        
-        ask_step_preference "Rosetta 2" "check and install Rosetta 2 (if needed)"
-        if [[ $SKIP_INSTALL != true ]]; then
-            install_rosetta
-        fi
-        echo
-        
-        ask_step_preference "Nix" "check and install Nix with flakes"
-        if [[ $SKIP_INSTALL != true ]]; then
-            install_nix
-        fi
-        echo
-        
-        ask_step_preference "Git Repository" "clone git repository"
-        if [[ $SKIP_INSTALL != true ]]; then
-            clone_repo
-        fi
-        echo
-        
-        ask_step_preference "flake.nix" "generate or update flake.nix configuration"
-        if [[ $SKIP_INSTALL != true ]]; then
-            generate_flake
-        fi
-        echo
-        
-        ask_step_preference "build commands" "run nix build commands (flake update, darwin build, home build)"
-        if [[ $SKIP_INSTALL != true ]]; then
-            run_build_commands
-        fi
-        echo
     else
-        # Auto mode - install everything
-        install_xcode_tools
-        echo
-        
-        install_rosetta
-        echo
-        
-        install_nix
-        echo
-        
-        clone_repo
-        echo
-        
-        generate_flake
-        echo
-        
-        # Auto mode also asks about build commands
-        print_status "Next steps:"
-        print_status "  1. Run: nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-        print_status "  2. Run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
-        print_status "  3. Run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-        echo
-        
-        read -p "Do you want to run these commands now? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            run_build_commands
-        else
-            print_status "Commands not run. You can run them manually:"
-            print_status "  nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-            print_status "  sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
-            print_status "  nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
-        fi
+        xcode_status="skip"
     fi
-    
+    wizard_step_end $step_num "Install Xcode Command Line Tools" $xcode_status
+
+    step_num=2
+    wizard_step_begin $step_num "Install Rosetta 2"
+    ask_step_preference "Rosetta 2" "check and install Rosetta 2 (if needed)"
+    local rosetta_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! install_rosetta; then
+            rosetta_status="fail"
+        fi
+    else
+        rosetta_status="skip"
+    fi
+    wizard_step_end $step_num "Install Rosetta 2" $rosetta_status
+
+    step_num=3
+    wizard_step_begin $step_num "Install Nix"
+    ask_step_preference "Nix" "check and install Nix with flakes"
+    local nix_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! install_nix; then
+            nix_status="fail"
+        fi
+    else
+        nix_status="skip"
+    fi
+    wizard_step_end $step_num "Install Nix" $nix_status
+
+    step_num=4
+    wizard_step_begin $step_num "Clone Git Repository"
+    ask_step_preference "Git Repository" "clone git repository"
+    local repo_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! clone_repo; then
+            repo_status="fail"
+        fi
+    else
+        repo_status="skip"
+    fi
+    wizard_step_end $step_num "Clone Git Repository" $repo_status
+
+    step_num=5
+    wizard_step_begin $step_num "Generate flake.nix"
+    ask_step_preference "flake.nix" "generate or update flake.nix configuration"
+    local flake_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! generate_flake; then
+            flake_status="fail"
+        fi
+    else
+        flake_status="skip"
+    fi
+    wizard_step_end $step_num "Generate flake.nix" $flake_status
+
+    step_num=6
+    wizard_step_begin $step_num "Run build commands"
+    ask_step_preference "build commands" "run nix build commands (flake update, darwin build, home build)"
+    local build_status="ok"
+    if [[ $SKIP_INSTALL != true ]]; then
+        if ! run_build_commands; then
+            build_status="fail"
+        fi
+    else
+        build_status="skip"
+    fi
+    wizard_step_end $step_num "Run build commands" $build_status
+
     print_success "Wizard completed successfully!"
 }
 
