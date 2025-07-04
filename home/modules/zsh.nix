@@ -63,7 +63,7 @@
       hm-check = "nix build .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run";
 
       # nix-darwin aliases (dynamic hostname detection)
-      darwin = "nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
+      darwin = "sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)";
       darwin-build = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system";
       darwin-check = "nix build .#darwinConfigurations.$(hostname | cut -d'.' -f1).system --dry-run";
 

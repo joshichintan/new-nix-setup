@@ -622,9 +622,9 @@ run_build_commands() {
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+        sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)
     else
-        print_dry_run "Would run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+        print_dry_run "Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
     fi
     
     print_status "3. Building home configuration..."
@@ -775,7 +775,7 @@ main() {
         # Auto mode also asks about build commands
         print_status "Next steps:"
         print_status "  1. Run: nix flake update"
-        print_status "  2. Run: nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+        print_status "  2. Run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
         print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         echo
         
@@ -786,7 +786,7 @@ main() {
         else
             print_status "Commands not run. You can run them manually:"
             print_status "  nix flake update"
-            print_status "  nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+            print_status "  sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
             print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         fi
     fi
