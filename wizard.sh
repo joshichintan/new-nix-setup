@@ -663,7 +663,7 @@ ask_installation_preference() {
     echo "  2) Interactive mode (ask at each step)"
     echo
     read -p "Enter your choice (1-2): " -n 1 -r
-    clear_prompt_block 6
+    clear_prompt_block 5
     
     case $REPLY in
         1)
