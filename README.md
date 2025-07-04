@@ -15,39 +15,25 @@ This setup provides:
 
 ### Option 1: Automated Setup (Recommended)
 
-Use the setup wizard for automatic installation:
+Use the setup wizard for automatic installation. **Note**: This script requires bash for best compatibility.
 
 #### Method A: Direct Installation (One-liner)
 ```bash
 # Fresh installation - runs everything automatically
-sh <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh)
 
 # Test run first (see what it would do)
-sh <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh) --dry-run
+bash <(curl -fsSL https://raw.githubusercontent.com/joshichintan/new-nix-setup/master/wizard.sh) --dry-run
 ```
 
-#### Method B: Clone and Run
-```bash
-# Clone the repository
-git clone https://github.com/joshichintan/new-nix-setup.git
-cd new-nix-setup
-
-# Make wizard executable
-chmod +x wizard.sh
-
-# Test run (see what it would do)
-./wizard.sh --dry-run
-
-# Actual installation
-./wizard.sh
-```
 
 The wizard will:
 - Detect if you have a fresh or existing installation
 - Install Xcode Command Line Tools (no popups)
 - Install Rosetta 2 on Apple Silicon Macs
-- **Clone the repository and change directory** (if using Method A)
 - Install Nix with flakes enabled
+- Clone the repository to `~/.config/new-nix-setup` (or your preferred location)
+- Set up `NIX_USER_CONFIG_PATH` environment variable
 - Generate/update flake.nix with your username and hostname
 - Optionally run the build commands automatically
 
@@ -61,23 +47,43 @@ The wizard will:
 
 ### Initial Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone <your-repo-url>
-   cd new-nix-setup
-   ```
-
-2. **Apply system configuration:**
+1. **Install Nix with flakes enabled** (if not already installed)
+2. **Clone the repository** to your preferred location (e.g., `~/.config/new-nix-setup`)
+3. **Apply system configuration:**
    ```bash
    # Build and switch to nix-darwin configuration
-   nix run .#darwinConfigurations.$(hostname | cut -d'.' -f1).system
+   sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
    ```
 
-3. **Apply Home Manager configuration:**
+4. **Apply Home Manager configuration:**
    ```bash
    # Apply user configuration (standalone)
-   nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+   nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
    ```
+
+## System and User Configuration
+
+### nix-darwin System Configuration
+
+This setup uses **nix-darwin** for system-level configuration with a modern approach:
+
+- ✅ **Direct darwin-rebuild**: Uses `sudo nix run nix-darwin#darwin-rebuild` for activation
+- ✅ **One-step process**: Build and activate in a single command
+- ✅ **Dynamic hostname detection**: Automatically detects your hostname
+- ✅ **System-level changes**: Manages system settings, packages, and configurations
+
+#### How It Works
+
+```bash
+sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+```
+
+This command:
+1. **Runs darwin-rebuild directly** from the nix-darwin flake
+2. **Uses NIX_USER_CONFIG_PATH** if set, otherwise defaults to current directory (`.`)
+3. **Builds your configuration** automatically
+4. **Activates it immediately** using the `switch` command
+5. **Uses sudo** for system-level changes
 
 ## Home Manager Standalone Mode
 
@@ -102,7 +108,7 @@ hm-check    # Check Home Manager configuration for errors
 
 #### nix-darwin Commands
 ```bash
-darwin      # Apply nix-darwin system configuration
+darwin      # Apply nix-darwin system configuration (uses darwin-rebuild)
 darwin-build # Build nix-darwin configuration without applying
 darwin-check # Check nix-darwin configuration for errors
 ```
@@ -127,27 +133,26 @@ nix-clean      # Clean old generations and garbage collect
 # List available configurations
 nix flake show
 
-# Available configurations:
-# - nix-darwin@chintan (work user)
-# - chintan@slartibartfast (personal user)
-# - chintan@nauvis (personal user)
+# Configurations are dynamically generated from hosts.nix
+# Example based on your hosts.nix:
+# - nix-darwin@chintan (generated from hosts.nix)
 ```
 
 ### How to Use
 
 #### Apply Home Manager Configuration
 ```bash
-# Apply configuration for work user
-nix run .#homeConfigurations.nix-darwin@chintan.activationPackage
+# Apply configuration (dynamically generated from hosts.nix)
+nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
 
-# Apply configuration for personal user
-nix run .#homeConfigurations.chintan@slartibartfast.activationPackage
+# Or list all available configurations first:
+nix flake show
 ```
 
 #### Build Without Applying
 ```bash
 # Build configuration without activating
-nix build .#homeConfigurations.nix-darwin@chintan.activationPackage
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
 
 # Then activate manually
 ./result/activate
@@ -156,15 +161,15 @@ nix build .#homeConfigurations.nix-darwin@chintan.activationPackage
 #### Check Configuration
 ```bash
 # Check for errors without building
-nix build .#homeConfigurations.nix-darwin@chintan.activationPackage --dry-run
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run
 ```
 
 ### Configuration Files
 
-- `home/nix-darwin.nix` - Work user configuration
-- `home/chintan.nix` - Personal user configuration
-- `home/nvim/` - Neovim configuration files
+- `hosts.nix` - Host configurations (username/hostname pairs)
+- `home/home.nix` - Shared Home Manager configuration
 - `home/modules/` - Reusable Home Manager modules
+- `home/nvim/` - Neovim configuration files
 
 ## Features
 
@@ -200,7 +205,7 @@ Neovim automatically detects your terminal and applies appropriate settings:
 
 #### Nix Packages (via Home Manager)
 ```nix
-# In home/nix-darwin.nix
+# In home/home.nix
 {
   home.packages = with pkgs; [
     htop
@@ -232,33 +237,34 @@ nix flake lock --update-input nixpkgs
 #### Apply Changes
 ```bash
 # Apply Home Manager changes (fast)
-nix run .#homeConfigurations.nix-darwin@chintan.activationPackage
+nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
 
 # Apply system changes (slower)
-nix run .#darwinConfigurations.chintan.system
+sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
 ```
 
-### Adding New Users
+### Adding New Hosts/Users
 
-1. **Create user configuration:**
+1. **Add host configuration:**
    ```nix
-   # In flake.nix
-   "newuser@hostname" = libx.mkHome {
-     username = "newuser";
-     homeDirectory = "/Users/newuser";
-     modules = [ ./home/newuser.nix ];
-   };
+   # In hosts.nix
+   {
+     chintan = {
+       hostname = "chintan";
+       username = "nix-darwin";
+     };
+     # Add new host
+     newhost = {
+       hostname = "newhost";
+       username = "newuser";
+     };
+   }
    ```
 
-2. **Create home configuration file:**
+2. **Apply configuration:**
    ```bash
-   # Create home/newuser.nix
-   touch home/newuser.nix
-   ```
-
-3. **Apply configuration:**
-   ```bash
-   nix run .#homeConfigurations.newuser@hostname.activationPackage
+   # The configuration will be automatically generated
+   nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.newuser@newhost.activationPackage
    ```
 
 ## Troubleshooting
@@ -268,10 +274,10 @@ nix run .#darwinConfigurations.chintan.system
 #### Home Manager Activation Fails
 ```bash
 # Check for errors
-nix build .#homeConfigurations.nix-darwin@chintan.activationPackage --show-trace
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --show-trace
 
 # Check configuration
-nix eval .#homeConfigurations.nix-darwin@chintan.activationPackage
+nix eval ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
 ```
 
 #### Neovim Issues
@@ -336,18 +342,17 @@ For machines with Nix already installed:
 
 ### Generated Configuration
 
-The wizard creates configurations like:
+The wizard updates `hosts.nix` with your current username and hostname:
 ```nix
-darwinConfigurations = {
-  yourhostname = libx.mkDarwin {
+# hosts.nix
+{
+  yourhostname = {
     hostname = "yourhostname";
     username = "yourusername";
   };
-};
-
-homeConfigurations = {
-  "yourusername@yourhostname" = libx.mkHome {
-    username = "yourusername";
-  };
-};
+}
 ```
+
+This automatically generates:
+- `darwinConfigurations.yourhostname` for system configuration
+- `homeConfigurations.yourusername@yourhostname` for user configuration

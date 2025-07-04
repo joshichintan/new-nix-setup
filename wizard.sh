@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Nix Setup Wizard
+# This script should be run with bash for best compatibility
+# Usage: bash wizard.sh [--dry-run]
+
 # Initialize variables
 DRY_RUN=false
 SKIP_INSTALL=false
@@ -181,103 +185,40 @@ install_rosetta() {
     fi
 }
 
-# Function to ensure we're in the correct repository directory
-ensure_repo_directory() {
-    local config_dir="$HOME/.config"
-    local found_dirs=()
-
-    print_status "Searching for Nix configurations in ~/.config..."
-
-    if [[ -d "$config_dir" ]]; then
-        # Find all directories with Nix configuration files in .config (not subdirectories)
-        while IFS= read -r -d '' dir; do
-            # Skip backup directories ending with -bak or -bak-N
-            base_dir="$(basename "$dir")"
-            if [[ "$base_dir" =~ -bak($|-[0-9]+$) ]]; then
-                continue
+# Function to check if NIX_USER_CONFIG_PATH is set and valid
+check_existing_config() {
+    if [[ -n "$NIX_USER_CONFIG_PATH" ]]; then
+        print_status "Found existing NIX_USER_CONFIG_PATH: $NIX_USER_CONFIG_PATH"
+        
+        if [[ -d "$NIX_USER_CONFIG_PATH" ]] && [[ -f "$NIX_USER_CONFIG_PATH/flake.nix" ]]; then
+            print_success "Valid Nix configuration found at: $NIX_USER_CONFIG_PATH"
+            
+            echo
+            print_status "Existing configuration detected:"
+            echo "  [1] Use existing config (change to directory)"
+            echo "  [N] Install new config (clone a new repo)"
+            echo
+            read -p "Enter 1 to use existing config or N for new config [1]: " REPLY
+            echo
+            
+            if [[ -z "$REPLY" || "$REPLY" == "1" ]]; then
+                print_status "Using existing configuration..."
+                print_success "Configuration ready at: $NIX_USER_CONFIG_PATH"
+                return 0
+            elif [[ "$REPLY" =~ ^[Nn]$ ]]; then
+                print_status "User chose to install a new config."
+                return 1
+            else
+                print_error "Invalid selection"
+                return 1
             fi
-            if [[ -d "$dir/.git" ]] || [[ -f "$dir/flake.nix" ]] || [[ -f "$dir/hosts.nix" ]] || [[ -f "$dir/home.nix" ]]; then
-                found_dirs+=("$dir")
-            fi
-        done < <(find "$config_dir" -maxdepth 1 -mindepth 1 -type d -print0 2>/dev/null)
-    fi
-
-    # Deduplicate found_dirs (POSIX-compatible)
-    if [[ ${#found_dirs[@]} -gt 0 ]]; then
-        deduped_dirs=()
-        for dir in "${found_dirs[@]}"; do
-            skip=
-            for seen in "${deduped_dirs[@]}"; do
-                [ "$dir" = "$seen" ] && skip=1 && break
-            done
-            [ -z "$skip" ] && deduped_dirs+=("$dir")
-        done
-        found_dirs=("${deduped_dirs[@]}")
-        # Sort directories
-        IFS=$'\n' found_dirs=($(sort <<<"${found_dirs[*]}"))
-        unset IFS
-    fi
-
-    # If multiple directories found, ask user to choose or install new config
-    if [[ ${#found_dirs[@]} -gt 1 ]]; then
-        echo
-        print_status "Found multiple Nix configuration directories in ~/.config:"
-        for i in "${!found_dirs[@]}"; do
-            local dir_info=""
-            if [[ -d "${found_dirs[$i]}/.git" ]]; then
-                dir_info=" (git repository)"
-            fi
-            if [[ -f "${found_dirs[$i]}/flake.nix" ]]; then
-                dir_info+=" (has flake.nix)"
-            fi
-            printf "  [%d] %s%s\n" "$((i+1))" "${found_dirs[$i]}" "$dir_info"
-        done
-        echo "  [N] Install new config (clone a new repo)"
-        echo
-        read -p "Enter the number of the directory to use or N for new config [1]: " REPLY
-        echo
-
-        if [[ -z "$REPLY" ]]; then
-            REPLY=1
-        fi
-
-        if [[ "$REPLY" =~ ^[Nn]$ ]]; then
-            print_status "User chose to install a new config."
-            return 1
-        elif [[ "$REPLY" =~ ^[0-9]+$ ]] && (( REPLY >= 1 && REPLY <= ${#found_dirs[@]} )); then
-            local selected_dir="${found_dirs[$((REPLY-1))]}"
-            print_status "Selected directory: $selected_dir"
-            cd "$selected_dir"
-            print_success "Changed directory to: $(pwd)"
-            return 0
         else
-            print_error "Invalid selection"
-            return 1
-        fi
-    elif [[ ${#found_dirs[@]} -eq 1 ]]; then
-        # Single directory found, offer to use or install new config
-        local selected_dir="${found_dirs[0]}"
-        echo
-        print_status "Found Nix configuration: $selected_dir"
-        echo "  [1] Use this config"
-        echo "  [N] Install new config (clone a new repo)"
-        echo
-        read -p "Enter 1 to use this config or N for new config [1]: " REPLY
-        echo
-        if [[ -z "$REPLY" || "$REPLY" == "1" ]]; then
-            print_status "Selected directory: $selected_dir"
-            cd "$selected_dir"
-            print_success "Changed directory to: $(pwd)"
-            return 0
-        elif [[ "$REPLY" =~ ^[Nn]$ ]]; then
-            print_status "User chose to install a new config."
-            return 1
-        else
-            print_error "Invalid selection"
+            print_warning "NIX_USER_CONFIG_PATH is set but directory is invalid or missing flake.nix"
+            print_status "Will proceed with new configuration setup"
             return 1
         fi
     fi
-
+    
     return 1
 }
 
@@ -291,8 +232,8 @@ clone_repo() {
     
     print_status "Setting up git repository..."
     
-    # First, try to ensure we're in the correct directory
-    if ensure_repo_directory; then
+    # First, check if we have an existing config
+    if check_existing_config; then
         print_success "Repository directory is ready"
         return 0
     fi
@@ -361,14 +302,8 @@ clone_repo() {
         if git clone "$repo_url" "$repo_dir"; then
             print_success "Repository cloned successfully"
             
-            # Change into the repository directory
-            if [[ -d "$repo_dir" ]]; then
-                cd "$repo_dir"
-                print_success "Changed directory to: $(pwd)"
-            else
-                print_error "Repository directory not found after cloning"
-                return 1
-            fi
+                    # Repository is now ready at: $repo_dir
+        print_success "Repository ready at: $repo_dir"
         else
             print_error "Failed to clone repository"
             return 1
@@ -378,7 +313,51 @@ clone_repo() {
         print_dry_run "Would back up $repo_dir to $repo_dir-bak (or -bak-N if needed) if it exists"
         print_dry_run "Would clone repository: $repo_url"
         print_dry_run "Would clone into: $repo_dir"
-        print_dry_run "Would change directory to: $repo_dir"
+    fi
+    
+    # Update NIX_USER_CONFIG_PATH after successful clone
+    if [[ $DRY_RUN != true ]] && [[ -d "$repo_dir" ]]; then
+        update_nix_config_path "$repo_dir"
+    fi
+}
+
+# Function to update NIX_USER_CONFIG_PATH in nix.conf
+update_nix_config_path() {
+    local new_config_path="$1"
+    local nix_conf_dir="$HOME/.config/nix"
+    local nix_conf_file="$nix_conf_dir/nix.conf"
+    
+    print_status "Updating NIX_USER_CONFIG_PATH to: $new_config_path"
+    
+    if [[ $DRY_RUN != true ]]; then
+        # Create nix config directory if it doesn't exist
+        if [[ ! -d "$nix_conf_dir" ]]; then
+            print_status "Creating Nix config directory: $nix_conf_dir"
+            mkdir -p "$nix_conf_dir"
+        fi
+        
+        # Remove existing NIX_USER_CONFIG_PATH line if it exists
+        if [[ -f "$nix_conf_file" ]]; then
+            print_status "Updating existing nix.conf file"
+            # Create a temporary file without the old NIX_USER_CONFIG_PATH line
+            grep -v "NIX_USER_CONFIG_PATH" "$nix_conf_file" > "${nix_conf_file}.tmp" 2>/dev/null || true
+            mv "${nix_conf_file}.tmp" "$nix_conf_file"
+        fi
+        
+        # Add the new NIX_USER_CONFIG_PATH
+        print_status "Adding NIX_USER_CONFIG_PATH to $nix_conf_file"
+        echo "" >> "$nix_conf_file"
+        echo "# Nix user configuration path" >> "$nix_conf_file"
+        echo "export NIX_USER_CONFIG_PATH=\"$new_config_path\"" >> "$nix_conf_file"
+        print_success "NIX_USER_CONFIG_PATH updated to: $new_config_path"
+        
+        # Also suggest adding to shell profile
+        print_status "Consider adding to your shell profile (~/.zshrc, ~/.bashrc):"
+        print_status "  export NIX_USER_CONFIG_PATH=\"$new_config_path\""
+    else
+        print_dry_run "Would create Nix config directory: $nix_conf_dir"
+        print_dry_run "Would update $nix_conf_file with NIX_USER_CONFIG_PATH=\"$new_config_path\""
+        print_dry_run "Would suggest adding to shell profile"
     fi
 }
 
@@ -622,16 +601,16 @@ run_build_commands() {
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)
+        sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
     else
-        print_dry_run "Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
+        print_dry_run "Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
     fi
     
     print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+        nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
     else
-        print_dry_run "Would run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        print_dry_run "Would run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
     fi
     
     if [[ $DRY_RUN != true ]]; then
@@ -732,15 +711,15 @@ main() {
         fi
         echo
         
-        ask_step_preference "Git Repository" "clone git repository and change directory"
-        if [[ $SKIP_INSTALL != true ]]; then
-            clone_repo
-        fi
-        echo
-        
         ask_step_preference "Nix" "check and install Nix with flakes"
         if [[ $SKIP_INSTALL != true ]]; then
             install_nix
+        fi
+        echo
+        
+        ask_step_preference "Git Repository" "clone git repository"
+        if [[ $SKIP_INSTALL != true ]]; then
+            clone_repo
         fi
         echo
         
@@ -763,10 +742,10 @@ main() {
         install_rosetta
         echo
         
-        clone_repo
+        install_nix
         echo
         
-        install_nix
+        clone_repo
         echo
         
         generate_flake
@@ -775,8 +754,8 @@ main() {
         # Auto mode also asks about build commands
         print_status "Next steps:"
         print_status "  1. Run: nix flake update"
-        print_status "  2. Run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
-        print_status "  3. Run: nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        print_status "  2. Run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+        print_status "  3. Run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         echo
         
         read -p "Do you want to run these commands now? (y/N): " -n 1 -r
@@ -786,8 +765,8 @@ main() {
         else
             print_status "Commands not run. You can run them manually:"
             print_status "  nix flake update"
-            print_status "  sudo nix run nix-darwin#darwin-rebuild -- switch --flake .#$(hostname | cut -d'.' -f1)"
-            print_status "  nix run .#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+            print_status "  sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+            print_status "  nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         fi
     fi
     
