@@ -93,11 +93,11 @@ print_error() {
 # For prompts: after reading input, clear the prompt block (all lines)
 clear_prompt_block() {
     local lines=$1
-    for ((i=0; i<lines; i++)); do
-        tput cuu1
-        echo -ne "\r"
-        tput el
-    done
+    # for ((i=0; i<lines; i++)); do
+    #     tput cuu1
+    #     echo -ne "\r"
+    #     tput el
+    # done
 }
 
 # Function to check if command exists
