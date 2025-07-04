@@ -462,8 +462,7 @@ add_host_config() {
   $hostname = {\\
     hostname = \"$hostname\";\\
     username = \"$username\";\\
-  };
-" "$config_dir/hosts.nix"
+  };" "$config_dir/hosts.nix"
             print_success "Added host configuration for '$username@$hostname' to $config_dir/hosts.nix"
         else
             # Create new hosts.nix file
