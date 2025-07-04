@@ -365,17 +365,22 @@ update_nix_config_path() {
 install_nix() {
     
     if [[ $DRY_RUN != true ]]; then
-        print_status "Installing Nix..."
-        
-        # Install Nix with official installer
+        # Check if Nix is already installed
         if command_exists nix; then
             print_success "Nix already installed"
         else
+            print_status "Installing Nix..."
+            
+            # Install Nix with official installer
             sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
+            
+            if [ $? -eq 0 ]; then
+                print_success "Nix installed successfully"
+            else
+                print_error "Failed to install Nix"
+                exit 1
+            fi
         fi
-        
-        if [ $? -eq 0 ]; then
-            print_success "Nix installed successfully"
             
             # Source Nix environment for current session
             print_status "Setting up Nix environment..."
@@ -396,9 +401,14 @@ install_nix() {
             # Enable flakes
             print_status "Enabling Nix flakes..."
             mkdir -p ~/.config/nix
-            echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
             
-            print_success "Nix flakes enabled"
+            # Check if experimental features are already configured
+            if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
+                print_success "Nix flakes already enabled"
+            else
+                echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+                print_success "Nix flakes enabled"
+            fi
             
             # Verify Nix is available
             if command_exists nix; then
@@ -412,15 +422,22 @@ install_nix() {
             exit 1
         fi
     else
-        print_dry_run "Would install Nix using official installer and enable flakes"
+        if command_exists nix; then
+            print_dry_run "Would check Nix installation (already installed)"
+        else
+            print_dry_run "Would install Nix using official installer and enable flakes"
+        fi
     fi
 }
 
 # Function to check if host configuration exists in hosts.nix
 check_host_config_exists() {
     local hostname=$1
-    if [[ -f hosts.nix ]]; then
-        grep -q "\"$hostname\"" hosts.nix
+    local config_dir="${2:-.}"
+    if [[ -f "$config_dir/hosts.nix" ]]; then
+        # Check if hostname exists as a proper host configuration entry
+        # Look for pattern: hostname = { ... hostname = "hostname" ... }
+        grep -A 5 -B 5 "\"$hostname\"" "$config_dir/hosts.nix" | grep -q "hostname = \"$hostname\""
     else
         false
     fi
@@ -430,19 +447,27 @@ check_host_config_exists() {
 add_host_config() {
     local username=$1
     local hostname=$2
+    local config_dir="${3:-.}"
+    
+    # Check if host configuration already exists
+    if check_host_config_exists "$hostname" "$config_dir"; then
+        print_warning "Host configuration for '$hostname' already exists in $config_dir/hosts.nix, skipping..."
+        return 0
+    fi
     
     if [[ $DRY_RUN != true ]]; then
-        if [[ -f hosts.nix ]]; then
+        if [[ -f "$config_dir/hosts.nix" ]]; then
             # Add new host to existing hosts.nix
             sed -i.bak "/^}/i\\
   $hostname = {\\
     hostname = \"$hostname\";\\
     username = \"$username\";\\
   };
-" hosts.nix
+" "$config_dir/hosts.nix"
+            print_success "Added host configuration for '$username@$hostname' to $config_dir/hosts.nix"
         else
             # Create new hosts.nix file
-            cat > hosts.nix << EOF
+            cat > "$config_dir/hosts.nix" << EOF
 # Host configurations
 {
   $hostname = {
@@ -451,9 +476,10 @@ add_host_config() {
   };
 }
 EOF
+            print_success "Created $config_dir/hosts.nix with host configuration for '$username@$hostname'"
         fi
     else
-        print_dry_run "Would add host configuration for '$username@$hostname' to hosts.nix"
+        print_dry_run "Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix"
     fi
 }
 
@@ -548,27 +574,25 @@ generate_flake() {
     local username=$(whoami)
     local hostname=$(hostname | cut -d'.' -f1)
     local system=$(detect_architecture)
+    local config_dir="${NIX_USER_CONFIG_PATH:-.}"
     
     print_status "Managing host configurations:"
     print_status "  Username: $username"
     print_status "  Hostname: $hostname"
     print_status "  System: $system"
+    print_status "  Config directory: $config_dir"
     
     # Only manage hosts.nix, don't touch flake.nix
-    if check_host_config_exists "$hostname"; then
-        print_status "Host configuration for hostname '$hostname' already exists in hosts.nix, skipping..."
+    print_status "Managing host configuration in hosts.nix..."
+    if [[ $DRY_RUN != true ]]; then
+        add_host_config "$username" "$hostname" "$config_dir"
     else
-        print_status "Adding new host configuration to hosts.nix..."
-        if [[ $DRY_RUN != true ]]; then
-            add_host_config "$username" "$hostname"
-        else
-            print_dry_run "Would add host configuration for '$username@$hostname' to hosts.nix"
-        fi
+        print_dry_run "Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix"
     fi
     
     # Check if flake.nix exists and has the right structure
-    if [[ -f flake.nix ]]; then
-        if grep -q "import ./hosts.nix" flake.nix; then
+    if [[ -f "$config_dir/flake.nix" ]]; then
+        if grep -q "import ./hosts.nix" "$config_dir/flake.nix"; then
             print_success "✓ flake.nix already imports hosts.nix correctly"
         else
             print_warning "flake.nix exists but doesn't import hosts.nix"
@@ -578,7 +602,7 @@ generate_flake() {
             print_status "  homeConfigurations = builtins.foldl' (...) hosts;"
         fi
     else
-        print_warning "flake.nix not found"
+        print_warning "flake.nix not found in $config_dir"
         print_status "Here's a suggested boilerplate for your flake.nix:"
         echo
         show_flake_boilerplate
