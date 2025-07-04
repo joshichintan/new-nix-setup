@@ -68,7 +68,7 @@
       darwin-check = "nix build \${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.\$(hostname | cut -d'.' -f1).system --dry-run";
 
       # General Nix aliases
-      nix-update = "nix flake update";
+      nix-update = "nix flake update --flake \${NIX_USER_CONFIG_PATH:-.}";
       nix-gc = "nix-store --gc";
       nix-clean = "nix-collect-garbage -d";
 
