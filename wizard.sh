@@ -36,11 +36,11 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "\033[K\r    ${BLUE}[INFO]${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
 }
 
 # Record cursor position and print step label with gray circle
@@ -53,7 +53,7 @@ wizard_step_begin() {
     wizard_log=()
     # Print the label with a gray circle
     local CIRCLE="\033[1;30m●${NC}"
-    printf "\033[K %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
+    printf " %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
 }
 
 # Restore cursor, update label with status, print warnings/errors
@@ -70,34 +70,34 @@ wizard_step_end() {
         skip) symbol="${YELLOW}–${NC}";;
         warn) symbol="${YELLOW}!${NC}";;
     esac
-    printf " %s. %-30s %b\033[K\n" "$num" "$label" "$symbol"
+    printf " %s. %-30s %b\n" "$num" "$label" "$symbol"
     # Print all warnings/errors
     for msg in "${wizard_log[@]}"; do
-        echo -e "    $msg\033[K\r"
+        echo -e "\033[K\r    $msg"
     done
 }
 
 # Modified print_warning and print_error to append to wizard_log
 print_warning() {
     local msg="${YELLOW}[WARNING]${NC} $1"
-    echo -e "$msg"
+    echo -e "\033[K\r    $msg"
     wizard_log+=("$msg")
 }
 
 print_error() {
     local msg="${RED}[ERROR]${NC} $1"
-    echo -e "$msg"
+    echo -e "\033[K\r    $msg"
     wizard_log+=("$msg")
 }
 
 # For prompts: after reading input, clear the prompt block (all lines)
 clear_prompt_block() {
     local lines=$1
-    # for ((i=0; i<lines; i++)); do
-    #     tput cuu1
-    #     echo -ne "\r"
-    #     tput el
-    # done
+    for ((i=0; i<lines; i++)); do
+        tput cuu1
+        echo -ne "\r"
+        tput el
+    done
 }
 
 # Function to check if command exists
@@ -296,7 +296,6 @@ clone_repo() {
     echo
     read -p "Enter your choice (1-3): " -n 1 -r
     clear_prompt_block 6
-    echo
     
     case $REPLY in
         1)
@@ -664,8 +663,7 @@ ask_installation_preference() {
     echo "  2) Interactive mode (ask at each step)"
     echo
     read -p "Enter your choice (1-2): " -n 1 -r
-    clear_prompt_block 6
-    echo
+    clear_prompt_block 5
     
     case $REPLY in
         1)
@@ -698,7 +696,6 @@ ask_step_preference() {
     echo
     read -p "Enter your choice (1-3): " -n 1 -r
     clear_prompt_block 6
-    echo
     
     case $REPLY in
         1)
@@ -730,7 +727,7 @@ prompt_and_set_hostname() {
     echo
     print_status "Current system hostname: $current_hostname"
     read -p "Enter new hostname (or press Enter to keep current): " new_hostname
-    clear_prompt_block 1
+    clear_prompt_block 2
     if [[ -n "$new_hostname" ]]; then
         if [[ $DRY_RUN == true ]]; then
             print_dry_run "Would run: sudo scutil --set LocalHostName $new_hostname"
