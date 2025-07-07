@@ -756,7 +756,7 @@ main() {
 
     step_num=1
     wizard_step_begin $step_num "Install Xcode Command Line Tools"
-    ask_step_preference "Install Xcode Command Line Tools" "check and install Xcode Command Line Tools"
+    ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
     local xcode_status="ok"
     if [[ $SKIP_INSTALL != true ]]; then
         if ! install_xcode_tools; then
