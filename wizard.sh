@@ -36,7 +36,7 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -ne "${BLUE}[INFO]${NC} $1\r\033[K"
+    echo -ne "${BLUE}[INFO]${NC} $1\n"
 }
 
 print_success() {
