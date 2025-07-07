@@ -37,23 +37,20 @@ NC='\033[0m' # No Color
 # Function to print colored output
 print_status() {
     echo -ne "${BLUE}[INFO]${NC} $1\r\033[K"
-    sleep 0.1
+    sleep 0.2
 }
 
 print_success() {
-    echo -ne "${GREEN}[SUCCESS]${NC} $1\r\033[K"
-    sleep 0.1
-}
-
-print_dry_run() {
-    echo -ne "${YELLOW}[DRY RUN]${NC} $1\r\033[K"
-    sleep 0.1
+    echo -ne "${GREEN}[SUCCESS]${NC} $1\n"
 }
 
 # Record cursor position and print step label with gray circle
 wizard_step_begin() {
     local num="$1"
     local label="$2"
+    # Save cursor position
+    echo -ne "\033[J"
+    tput sc
     # Clear wizard_log array
     wizard_log=()
     # Print the label with a gray circle
@@ -61,12 +58,14 @@ wizard_step_begin() {
     printf " %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
 }
 
-# Update label with status, print warnings/errors
+# Restore cursor, update label with status, print warnings/errors
 wizard_step_end() {
     local num="$1"
     local label="$2"
     local status="$3" # ok, fail, skip, warn
-    
+    # Restore cursor to label
+    tput rc
+    echo -ne "\033[J"
     local symbol=""
     case "$status" in
         ok)   symbol="${GREEN}✓${NC}";;
@@ -74,21 +73,12 @@ wizard_step_end() {
         skip) symbol="${YELLOW}–${NC}";;
         warn) symbol="${YELLOW}!${NC}";;
     esac
-    
-    # Move cursor up to the step label line and update it
-    echo -ne "\033[A\r"
     printf " %s. %-30s %b" "$num" "$label" "$symbol"
-    
-    # Print all warnings/errors if any
-    if [ ${#wizard_log[@]} -gt 0 ]; then
-        echo
-        for msg in "${wizard_log[@]}"; do
-            echo -ne "    $msg\n"
-        done
-    else
-        echo
-    fi
-}
+    # Print all warnings/errors
+    for msg in "${wizard_log[@]}"; do
+        echo -ne "    $msg\n"
+    done
+    }
 
 # Modified print_warning and print_error to append to wizard_log
 print_warning() {
@@ -103,11 +93,13 @@ print_error() {
     wizard_log+=("$msg")
 }
 
-# For prompts: after reading input, clear the prompt block
+# For prompts: after reading input, clear the prompt block (all lines)
 clear_prompt_block() {
     local lines=$1
     for ((i=0; i<lines; i++)); do
-        echo -ne "\033[A\r\033[K"
+        tput cuu1
+        echo -ne "\r"
+        tput el
     done
 }
 
@@ -127,7 +119,7 @@ detect_architecture() {
 
 # Function to install Xcode Command Line Tools
 install_xcode_tools() {
-    echo "${BLUE}Installing Xcode Command Line Tools...${NC}"
+    print_status "Installing Xcode Command Line Tools..."
     
     # Define temp file path
     XCLT_TMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
@@ -149,12 +141,12 @@ install_xcode_tools() {
     
     # Check if already installed
     if xcode-select -p >/dev/null 2>&1; then
-        echo "${GREEN}Xcode Command Line Tools already installed${NC}"
+        print_success "Xcode Command Line Tools already installed"
         return 0
     fi
     
     if [[ $DRY_RUN != true ]]; then
-        echo "${BLUE}Installing Xcode Command Line Tools (this may take a while)...${NC}"
+        print_status "Installing Xcode Command Line Tools (this may take a while)..."
         
         # Step 1: Create the temp file to trigger Command Line Tools listing
         sudo touch "$XCLT_TMP"
@@ -200,18 +192,18 @@ install_xcode_tools() {
         fi
         
         LABEL="${LABELS[$((CHOICE-1))]}"
-        echo "${BLUE}Installing: $LABEL${NC}"
+        print_status "Installing: $LABEL"
         sudo softwareupdate --install "$LABEL"
         
         # Verify installation
         if xcode-select -p >/dev/null 2>&1; then
-            echo "${GREEN}Xcode Command Line Tools installed successfully${NC}"
+            print_success "Xcode Command Line Tools installed successfully"
         else
             print_error "Xcode Command Line Tools installation failed"
             exit 1
         fi
     else
-        echo "${YELLOW}Would install Xcode Command Line Tools using softwareupdate${NC}"
+        print_dry_run "Would install Xcode Command Line Tools using softwareupdate"
     fi
 }
 
@@ -220,41 +212,41 @@ install_rosetta() {
     local arch=$(uname -m)
     
     if [[ $arch == "arm64" ]]; then
-        echo "${BLUE}Detected Apple Silicon Mac, installing Rosetta 2...${NC}"
+        print_status "Detected Apple Silicon Mac, installing Rosetta 2..."
         
         if /usr/bin/pgrep -q oahd; then
-            echo "${GREEN}Rosetta 2 already installed${NC}"
+            print_success "Rosetta 2 already installed"
             return 0
         fi
         
         if [[ $DRY_RUN != true ]]; then
-            echo "${BLUE}Installing Rosetta 2...${NC}"
+            print_status "Installing Rosetta 2..."
             /usr/sbin/softwareupdate --install-rosetta --agree-to-license
             
             if [ $? -eq 0 ]; then
-                echo "${GREEN}Rosetta 2 installed successfully${NC}"
+                print_success "Rosetta 2 installed successfully"
             else
                 print_error "Failed to install Rosetta 2"
                 exit 1
             fi
         else
-            echo "${YELLOW}Would install Rosetta 2 using softwareupdate --install-rosetta --agree-to-license${NC}"
+            print_dry_run "Would install Rosetta 2 using softwareupdate --install-rosetta --agree-to-license"
         fi
     else
-        echo "${BLUE}Intel Mac detected, Rosetta 2 not needed${NC}"
+        print_status "Intel Mac detected, Rosetta 2 not needed"
     fi
 }
 
 # Function to check if NIX_USER_CONFIG_PATH is set and valid
 check_existing_config() {
     if [[ -n "$NIX_USER_CONFIG_PATH" ]]; then
-        echo "${BLUE}Found existing NIX_USER_CONFIG_PATH: $NIX_USER_CONFIG_PATH${NC}"
+        print_status "Found existing NIX_USER_CONFIG_PATH: $NIX_USER_CONFIG_PATH"
         
         if [[ -d "$NIX_USER_CONFIG_PATH" ]] && [[ -f "$NIX_USER_CONFIG_PATH/flake.nix" ]]; then
-            echo "${GREEN}Valid Nix configuration found at: $NIX_USER_CONFIG_PATH${NC}"
+            print_success "Valid Nix configuration found at: $NIX_USER_CONFIG_PATH"
             
             echo
-            echo "${BLUE}Existing configuration detected:${NC}"
+            print_status "Existing configuration detected:"
             echo "  1) Use existing config (change to directory)"
             echo "  2) Install new config (clone a new repo)"
             echo
@@ -263,11 +255,11 @@ check_existing_config() {
             echo
             
             if [[ -z "$REPLY" || "$REPLY" == "1" ]]; then
-                echo "${BLUE}Using existing configuration...${NC}"
-                echo "${GREEN}Configuration ready at: $NIX_USER_CONFIG_PATH${NC}"
+                print_status "Using existing configuration..."
+                print_success "Configuration ready at: $NIX_USER_CONFIG_PATH"
                 return 0
             elif [[ "$REPLY" =~ ^[Nn]$ ]]; then
-                echo "${BLUE}User chose to install a new config.${NC}"
+                print_status "User chose to install a new config."
                 return 1
             else
                 print_error "Invalid selection"
@@ -275,7 +267,7 @@ check_existing_config() {
             fi
         else
             print_warning "NIX_USER_CONFIG_PATH is set but directory is invalid or missing flake.nix"
-            echo "${BLUE}Will proceed with new configuration setup${NC}"
+            print_status "Will proceed with new configuration setup"
             return 1
         fi
     fi
@@ -290,17 +282,17 @@ clone_repo() {
     local config_dir="$HOME/.config"
     local repo_dir="$config_dir/nix-config"
     
-    echo "${BLUE}Setting up git repository...${NC}"
+    print_status "Setting up git repository..."
     
     # First, check if we have an existing config
     if check_existing_config; then
-        echo "${GREEN}Repository directory is ready${NC}"
+        print_success "Repository directory is ready"
         return 0
     fi
     
     # Ask user for repository URL
     echo
-    echo "${BLUE}Repository setup:${NC}"
+    print_status "Repository setup:"
     echo "  1) Use default repository: $default_repo"
     echo "  2) Enter custom repository URL"
     echo "  3) Skip repository setup"
@@ -321,7 +313,7 @@ clone_repo() {
             fi
             ;;
         3)
-            echo "${BLUE}Skipping repository setup${NC}"
+            print_status "Skipping repository setup"
             return 0
             ;;
         *)
@@ -331,12 +323,12 @@ clone_repo() {
     esac
     
     if [[ $DRY_RUN != true ]]; then
-        echo "${BLUE}Setting up repository in: $repo_dir${NC}"
-        echo "${BLUE}Note: Repository will be cloned to 'nix-config' directory to match NIX_USER_CONFIG_PATH${NC}"
+        print_status "Setting up repository in: $repo_dir"
+        print_status "Note: Repository will be cloned to 'nix-config' directory to match NIX_USER_CONFIG_PATH"
         
         # Create .config directory if it doesn't exist
         if [[ ! -d "$config_dir" ]]; then
-            echo "${BLUE}Creating .config directory...${NC}"
+            print_status "Creating .config directory..."
             mkdir -p "$config_dir"
         fi
         
@@ -348,24 +340,24 @@ clone_repo() {
                 bak_dir="${repo_dir}-bak-$bak_index"
                 bak_index=$((bak_index + 1))
             done
-            echo "${BLUE}Backing up existing directory: $repo_dir -> $bak_dir${NC}"
+            print_status "Backing up existing directory: $repo_dir -> $bak_dir"
             mv "$repo_dir" "$bak_dir"
         fi
         
         # Clone the repository into .config/nix-config directory
-        echo "${BLUE}Cloning repository: $repo_url${NC}"
+        print_status "Cloning repository: $repo_url"
         if git clone "$repo_url" "$repo_dir"; then
-            echo "${GREEN}Repository cloned successfully${NC}"
-            echo "${GREEN}Repository ready at: $repo_dir${NC}"
+            print_success "Repository cloned successfully"
+            print_success "Repository ready at: $repo_dir"
         else
             print_error "Failed to clone repository"
             return 1
         fi
     else
-        echo "${YELLOW}Would create .config directory if needed${NC}"
-        echo "${YELLOW}Would back up $repo_dir to $repo_dir-bak (or -bak-N if needed) if it exists${NC}"
-        echo "${YELLOW}Would clone repository: $repo_url${NC}"
-        echo "${YELLOW}Would clone into: $repo_dir (always 'nix-config' directory)${NC}"
+        print_dry_run "Would create .config directory if needed"
+        print_dry_run "Would back up $repo_dir to $repo_dir-bak (or -bak-N if needed) if it exists"
+        print_dry_run "Would clone repository: $repo_url"
+        print_dry_run "Would clone into: $repo_dir (always 'nix-config' directory)"
     fi
     
     # Update NIX_USER_CONFIG_PATH after successful clone
@@ -381,11 +373,11 @@ update_nix_config_path() {
     # Set the environment variable for the current session
     export NIX_USER_CONFIG_PATH="$new_config_path"
     
-    echo "${BLUE}Repository cloned to: $new_config_path${NC}"
-    echo "${GREEN}NIX_USER_CONFIG_PATH is set to: $new_config_path${NC}"
-    echo "${BLUE}Note: Environment variable is managed by Home Manager in home/home.nix${NC}"
-    echo "${BLUE}You can rebuild your home configuration to apply changes:${NC}"
-    echo "${BLUE}  hm${NC}"
+    print_status "Repository cloned to: $new_config_path"
+    print_success "NIX_USER_CONFIG_PATH is set to: $new_config_path"
+    print_status "Note: Environment variable is managed by Home Manager in home/home.nix"
+    print_status "You can rebuild your home configuration to apply changes:"
+    print_status "  hm"
 }
 
 # Function to install Nix
@@ -394,15 +386,15 @@ install_nix() {
     if [[ $DRY_RUN != true ]]; then
         # Check if Nix is already installed
         if command_exists nix; then
-            echo "${GREEN}Nix already installed${NC}"
+            print_success "Nix already installed"
         else
-            echo "${BLUE}Installing Nix...${NC}"
+            print_status "Installing Nix..."
             
             # Install Nix with official installer
             sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
             
             if [ $? -eq 0 ]; then
-                echo "${GREEN}Nix installed successfully${NC}"
+                print_success "Nix installed successfully"
             else
                 print_error "Failed to install Nix"
                 exit 1
@@ -410,7 +402,7 @@ install_nix() {
         fi
             
         # Source Nix environment for current session
-        echo "${BLUE}Setting up Nix environment...${NC}"
+        print_status "Setting up Nix environment..."
         
         # Source the Nix environment
         if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
@@ -426,30 +418,30 @@ install_nix() {
         fi
         
         # Enable flakes
-        echo "${BLUE}Enabling Nix flakes...${NC}"
+        print_status "Enabling Nix flakes..."
         mkdir -p ~/.config/nix
         
         # Check if experimental features are already configured
         if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
-            echo "${GREEN}Nix flakes already enabled${NC}"
+            print_success "Nix flakes already enabled"
         else
             echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-            echo "${GREEN}Nix flakes enabled${NC}"
+            print_success "Nix flakes enabled"
         fi
         
         # Verify Nix is available
         if command_exists nix; then
-            echo "${GREEN}Nix command is available${NC}"
+            print_success "Nix command is available"
         else
             print_warning "Nix command not found in PATH, you may need to restart your terminal"
-            echo "${BLUE}You can also run: source ~/.nix-profile/etc/profile.d/nix.sh${NC}"
+            print_status "You can also run: source ~/.nix-profile/etc/profile.d/nix.sh"
         fi
 
     else
         if command_exists nix; then
-            echo "${YELLOW}Would check Nix installation (already installed)${NC}"
+            print_dry_run "Would check Nix installation (already installed)"
         else
-            echo "${YELLOW}Would install Nix using official installer and enable flakes${NC}"
+            print_dry_run "Would install Nix using official installer and enable flakes"
         fi
     fi
 }
@@ -487,7 +479,7 @@ add_host_config() {
     hostname = \"$hostname\";\\
     username = \"$username\";\\
   };" "$config_dir/hosts.nix"
-            echo "${GREEN}Added host configuration for '$username@$hostname' to $config_dir/hosts.nix${NC}"
+            print_success "Added host configuration for '$username@$hostname' to $config_dir/hosts.nix"
         else
             # Create new hosts.nix file
             cat > "$config_dir/hosts.nix" << EOF
@@ -499,18 +491,18 @@ add_host_config() {
   };
 }
 EOF
-            echo "${GREEN}Created $config_dir/hosts.nix with host configuration for '$username@$hostname'${NC}"
+            print_success "Created $config_dir/hosts.nix with host configuration for '$username@$hostname'"
         fi
     else
-        echo "${YELLOW}Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix${NC}"
+        print_dry_run "Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix"
     fi
 }
 
 # Function to show flake.nix boilerplate
 show_flake_boilerplate() {
-    echo "${BLUE}Here's a suggested boilerplate for your flake.nix:${NC}"
+    print_status "Here's a suggested boilerplate for your flake.nix:"
     echo
-    echo "${BLUE}Create flake.nix with this structure:${NC}"
+    print_status "Create flake.nix with this structure:"
     cat << 'EOF'
 {
   inputs = {
@@ -589,7 +581,7 @@ show_flake_boilerplate() {
 }
 EOF
     echo
-    echo "${BLUE}You can customize the inputs section according to your needs.${NC}"
+    print_status "You can customize the inputs section according to your needs."
 }
 
 # Function to generate flake.nix
@@ -599,77 +591,77 @@ generate_flake() {
     local system=$(detect_architecture)
     local config_dir="${NIX_USER_CONFIG_PATH:-.}"
     
-    echo "${BLUE}Managing host configurations:${NC}"
-    echo "${BLUE}  Username: $username${NC}"
-    echo "${BLUE}  Hostname: $hostname${NC}"
-    echo "${BLUE}  System: $system${NC}"
-    echo "${BLUE}  Config directory: $config_dir${NC}"
+    print_status "Managing host configurations:"
+    print_status "  Username: $username"
+    print_status "  Hostname: $hostname"
+    print_status "  System: $system"
+    print_status "  Config directory: $config_dir"
     
     # Only manage hosts.nix, don't touch flake.nix
-    echo "${BLUE}Managing host configuration in hosts.nix...${NC}"
+    print_status "Managing host configuration in hosts.nix..."
     if [[ $DRY_RUN != true ]]; then
         add_host_config "$username" "$hostname" "$config_dir"
     else
-        echo "${YELLOW}Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix${NC}"
+        print_dry_run "Would add host configuration for '$username@$hostname' to $config_dir/hosts.nix"
     fi
     
     # Check if flake.nix exists and has the right structure
     if [[ -f "$config_dir/flake.nix" ]]; then
         if grep -q "import ./hosts.nix" "$config_dir/flake.nix"; then
-            echo "${GREEN}✓ flake.nix already imports hosts.nix correctly${NC}"
+            print_success "✓ flake.nix already imports hosts.nix correctly"
         else
             print_warning "flake.nix exists but doesn't import hosts.nix"
-            echo "${BLUE}You may need to update your flake.nix to use the modular approach:${NC}"
-            echo "${BLUE}  hosts = import ./hosts.nix;${NC}"
-            echo "${BLUE}  darwinConfigurations = builtins.mapAttrs (...) hosts;${NC}"
-            echo "${BLUE}  homeConfigurations = builtins.foldl' (...) hosts;${NC}"
+            print_status "You may need to update your flake.nix to use the modular approach:"
+            print_status "  hosts = import ./hosts.nix;"
+            print_status "  darwinConfigurations = builtins.mapAttrs (...) hosts;"
+            print_status "  homeConfigurations = builtins.foldl' (...) hosts;"
         fi
     else
         print_warning "flake.nix not found in $config_dir"
-        echo "${BLUE}Here's a suggested boilerplate for your flake.nix:${NC}"
+        print_status "Here's a suggested boilerplate for your flake.nix:"
         echo
         show_flake_boilerplate
     fi
     
-    echo "${GREEN}Host configuration management completed${NC}"
+    print_success "Host configuration management completed"
 }
 
 # Function to run build commands
 run_build_commands() {
-    echo "${BLUE}Running build commands...${NC}"
+    print_status "Running build commands..."
     
-    echo "${BLUE}1. Updating flake...${NC}"
+    print_status "1. Updating flake..."
     if [[ $DRY_RUN != true ]]; then
         nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}
     else
-        echo "${YELLOW}Would run: nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}${NC}"
+        print_dry_run "Would run: nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
     fi
     
-    echo "${BLUE}2. Building darwin configuration...${NC}"
+    print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
         sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
     else
-        echo "${YELLOW}Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)${NC}"
+        print_dry_run "Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
     fi
     
-    echo "${BLUE}3. Building home configuration...${NC}"
+    print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
         nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
     else
-        echo "${YELLOW}Would run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage${NC}"
+        print_dry_run "Would run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
     fi
     
     if [[ $DRY_RUN != true ]]; then
-        echo "${GREEN}All commands completed!${NC}"
+        print_success "All commands completed!"
     else
-        echo "${YELLOW}Would complete all build commands${NC}"
+        print_dry_run "Would complete all build commands"
     fi
 }
 
 # Function to ask user for installation preference
 ask_installation_preference() {
     echo
-    echo "${BLUE}What would you like to do?${NC}"
+    print_status "What would you like to do?"
     echo "  1) Install everything automatically (recommended)"
     echo "  2) Interactive mode (ask at each step)"
     echo
@@ -681,14 +673,14 @@ ask_installation_preference() {
             DRY_RUN=false
             SKIP_INSTALL=false
             INTERACTIVE=false
-            echo "${GREEN}Proceeding with automatic installation${NC}"
+            print_success "Proceeding with automatic installation"
             ;;
         2)
             INTERACTIVE=true
-            echo "${BLUE}Interactive mode enabled - you'll be asked at each step${NC}"
+            print_status "Interactive mode enabled - you'll be asked at each step"
             ;;
         *)
-            echo "${RED}Invalid choice. Please run the wizard again.${NC}"
+            print_error "Invalid choice. Please run the wizard again."
             exit 1
             ;;
     esac
@@ -700,7 +692,7 @@ ask_step_preference() {
     local step_description=$2
     
     echo
-    echo "${BLUE}About to: $step_description${NC}"
+    print_status "About to: $step_description"
     echo "  1) Install/Skip (auto-detect if already installed)"
     echo "  2) Skip this step"
     echo "  3) Dry run (show what would be done)"
@@ -712,20 +704,20 @@ ask_step_preference() {
         1)
             DRY_RUN=false
             SKIP_INSTALL=false
-            echo "${BLUE}Proceeding with $step_name${NC}"
+            print_status "Proceeding with $step_name"
             ;;
         2)
             DRY_RUN=false
             SKIP_INSTALL=true
-            echo "${BLUE}Skipping $step_name${NC}"
+            print_status "Skipping $step_name"
             ;;
         3)
             DRY_RUN=true
             SKIP_INSTALL=false
-            echo "${YELLOW}DRY RUN for $step_name${NC}"
+            print_warning "DRY RUN for $step_name"
             ;;
         *)
-            echo "${RED}Invalid choice. Skipping $step_name${NC}"
+            print_error "Invalid choice. Skipping $step_name"
             DRY_RUN=false
             SKIP_INSTALL=true
             ;;
@@ -736,27 +728,26 @@ ask_step_preference() {
 prompt_and_set_hostname() {
     local current_hostname=$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d'.' -f1)
     echo
-    echo "${BLUE}Current system hostname: $current_hostname${NC}"
+    print_status "Current system hostname: $current_hostname"
     read -p "Enter new hostname (or press Enter to keep current): " new_hostname
     clear_prompt_block 2
     if [[ -n "$new_hostname" ]]; then
         if [[ $DRY_RUN == true ]]; then
-            echo "${YELLOW}Would run: sudo scutil --set LocalHostName $new_hostname${NC}"
+            print_dry_run "Would run: sudo scutil --set LocalHostName $new_hostname"
         else
-            echo "${BLUE}Setting new hostname to: $new_hostname${NC}"
+            print_status "Setting new hostname to: $new_hostname"
             sudo scutil --set LocalHostName "$new_hostname"
-            echo "${GREEN}Hostname set to: $new_hostname${NC}"
+            print_success "Hostname set to: $new_hostname"
         fi
     else
-        echo "${BLUE}Keeping existing hostname: $current_hostname${NC}"
+        print_status "Keeping existing hostname: $current_hostname"
     fi
 }
 
 # Main wizard function
 main() {
-    echo "Nix Setup Wizard Starting..."
-    echo "Checking system and running all necessary installations..."
-    echo
+    print_status "Nix Setup Wizard Starting..."
+    print_status "Checking system and running all necessary installations..."
 
     # Housekeeping: Prompt for hostname
     prompt_and_set_hostname
@@ -842,8 +833,7 @@ main() {
     fi
     wizard_step_end $step_num "Run build commands" $build_status
 
-    echo
-    echo "${GREEN}Wizard completed successfully!${NC}"
+    print_success "Wizard completed successfully!"
 }
 
 # Run the wizard
