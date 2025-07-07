@@ -55,7 +55,7 @@ wizard_step_begin() {
     wizard_log=()
     # Print the label with a gray circle
     local CIRCLE="\033[1;30m●${NC}"
-    printf " %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
+    printf " %s. %-30s %b" "$num" "$label" "$CIRCLE"
 }
 
 # Restore cursor, update label with status, print warnings/errors
