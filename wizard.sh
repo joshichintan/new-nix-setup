@@ -36,11 +36,11 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -ne "   ${BLUE}[INFO]${NC} $1\033[K\r\n"
+    echo -ne "${BLUE}[INFO]${NC} $1\033[K\r\n"
 }
 
 print_success() {
-    echo -ne "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
+    echo -ne "${GREEN}[SUCCESS]${NC} $1\033[K\r\n"
 }
 
 # Record cursor position and print step label with gray circle
@@ -73,20 +73,20 @@ wizard_step_end() {
     printf " %s. %-30s %b\n" "$num" "$label" "$symbol"
     # Print all warnings/errors
     for msg in "${wizard_log[@]}"; do
-        echo -e "\033[K\r    $msg"
+        echo -ne "$msg\033[K\r\n"
     done
 }
 
 # Modified print_warning and print_error to append to wizard_log
 print_warning() {
     local msg="${YELLOW}[WARNING]${NC} $1"
-    echo -e "\033[K\r    $msg"
+    echo -ne "$msg\033[K\r\n"
     wizard_log+=("$msg")
 }
 
 print_error() {
     local msg="${RED}[ERROR]${NC} $1"
-    echo -e "\033[K\r    $msg"
+    echo -ne "$msg\033[K\r\n"
     wizard_log+=("$msg")
 }
 
