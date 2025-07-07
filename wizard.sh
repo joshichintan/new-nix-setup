@@ -49,6 +49,8 @@ wizard_step_begin() {
     local num="$1"
     local label="$2"
     # Save cursor position
+    echo
+    echo -ne "\033[J"
     tput sc
     # Clear wizard_log array
     wizard_log=()
