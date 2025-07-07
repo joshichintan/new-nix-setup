@@ -40,7 +40,7 @@ print_status() {
 }
 
 print_success() {
-    echo -ne "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
+    echo -e "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
 }
 
 # Record cursor position and print step label with gray circle
