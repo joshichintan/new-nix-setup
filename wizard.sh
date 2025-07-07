@@ -75,7 +75,6 @@ wizard_step_end() {
     for msg in "${wizard_log[@]}"; do
         echo -ne "$msg\n"
     done
-    echo
 }
 
 # Modified print_warning and print_error to append to wizard_log
