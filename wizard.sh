@@ -36,11 +36,11 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -ne "\033[K\r    ${BLUE}[INFO]${NC} $1"
+    echo -e "\033[K\r    ${BLUE}[INFO]${NC} $1"
 }
 
 print_success() {
-    echo -ne "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
+    echo -e "\033[K\r    ${GREEN}[SUCCESS]${NC} $1"
 }
 
 # Record cursor position and print step label with gray circle
