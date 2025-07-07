@@ -663,7 +663,7 @@ ask_installation_preference() {
     echo "  2) Interactive mode (ask at each step)"
     echo
     read -p "Enter your choice (1-2): " -n 1 -r
-    clear_prompt_block 5
+    clear_prompt_block 6
     
     case $REPLY in
         1)
@@ -695,7 +695,7 @@ ask_step_preference() {
     echo "  3) Dry run (show what would be done)"
     echo
     read -p "Enter your choice (1-3): " -n 1 -r
-    clear_prompt_block 6
+    clear_prompt_block 7
     
     case $REPLY in
         1)
