@@ -36,58 +36,58 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -ne "${BLUE}[INFO]${NC} $1\033[K\r\n"
+    echo -ne "${BLUE}[INFO]${NC} $1\n"
 }
 
 print_success() {
-    echo -ne "${GREEN}[SUCCESS]${NC} $1\033[K\r\n"
+    echo -ne "${GREEN}[SUCCESS]${NC} $1\n"
 }
 
 # Record cursor position and print step label with gray circle
-wizard_step_begin() {
-    local num="$1"
-    local label="$2"
-    # Save cursor position
-    tput sc
-    # Clear wizard_log array
-    wizard_log=()
-    # Print the label with a gray circle
-    local CIRCLE="\033[1;30m●${NC}"
-    printf " %s. %-30s %b\n" "$num" "$label" "$CIRCLE"
-}
+# wizard_step_begin() {
+#     local num="$1"
+#     local label="$2"
+#     # Save cursor position
+#     tput sc
+#     # Clear wizard_log array
+#     wizard_log=()
+#     # Print the label with a gray circle
+#     local CIRCLE="\033[1;30m●${NC}"
+#     printf " %s. %-30s %b" "$num" "$label" "$CIRCLE"
+# }
 
 # Restore cursor, update label with status, print warnings/errors
-wizard_step_end() {
-    local num="$1"
-    local label="$2"
-    local status="$3" # ok, fail, skip, warn
-    # Restore cursor to label
-    tput rc
-    local symbol=""
-    case "$status" in
-        ok)   symbol="${GREEN}✓${NC}";;
-        fail) symbol="${RED}✗${NC}";;
-        skip) symbol="${YELLOW}–${NC}";;
-        warn) symbol="${YELLOW}!${NC}";;
-    esac
-    printf " %s. %-30s %b\n" "$num" "$label" "$symbol"
-    # Print all warnings/errors
-    for msg in "${wizard_log[@]}"; do
-        echo -ne "$msg\033[K\r\n"
-    done
-}
+# wizard_step_end() {
+#     local num="$1"
+#     local label="$2"
+#     local status="$3" # ok, fail, skip, warn
+#     # Restore cursor to label
+#     tput rc
+#     local symbol=""
+#     case "$status" in
+#         ok)   symbol="${GREEN}✓${NC}";;
+#         fail) symbol="${RED}✗${NC}";;
+#         skip) symbol="${YELLOW}–${NC}";;
+#         warn) symbol="${YELLOW}!${NC}";;
+#     esac
+#     printf " %s. %-30s %b" "$num" "$label" "$symbol"
+#     # Print all warnings/errors
+#     for msg in "${wizard_log[@]}"; do
+#         echo -ne "$msg\n"
+#     done
+# }
 
 # Modified print_warning and print_error to append to wizard_log
 print_warning() {
     local msg="${YELLOW}[WARNING]${NC} $1"
-    echo -ne "$msg\033[K\r\n"
-    wizard_log+=("$msg")
+    echo -ne "$msg\n"
+    # wizard_log+=("$msg")
 }
 
 print_error() {
     local msg="${RED}[ERROR]${NC} $1"
-    echo -ne "$msg\033[K\r\n"
-    wizard_log+=("$msg")
+    echo -ne "$msg\n"
+    # wizard_log+=("$msg")
 }
 
 # For prompts: after reading input, clear the prompt block (all lines)
