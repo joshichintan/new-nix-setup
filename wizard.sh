@@ -1,12 +1,5 @@
 #!/bin/bash
 
-
-# Source zshrc and Nix profile scripts at the start to refresh environment
-if [ -f "$HOME/.config/zsh/.zshrc" ]; then
-    echo "[INFO] Sourcing $HOME/.config/zsh/.zshrc to refresh shell environment..."
-    source "$HOME/.config/zsh/.zshrc"
-fi
-
 # Nix Setup Wizard
 # This script should be run with bash for best compatibility
 # Usage: bash wizard.sh [--dry-run]
@@ -792,13 +785,9 @@ main() {
     fi
     
     print_success "Wizard completed successfully!"
-
-    # Source zshrc and Nix profile scripts if they exist
-    if [ -f "$HOME/.config/zsh/.zshrc" ]; then
-        print_status "Sourcing $HOME/.config/zsh/.zshrc to refresh shell environment..."
-        source "$HOME/.config/zsh/.zshrc"
-    fi
     print_status "Shell environment refreshed. You may need to restart your terminal for all changes to take effect."
+    echo "Exiting shell as setup was successful."
+    exit
 }
 
 # Run the wizard
