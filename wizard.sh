@@ -769,7 +769,7 @@ main() {
         print_status "Next steps:"
         print_status "  1. Run: nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
         print_status "  2. Run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
-        print_status "  3. Run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        print_status "  3. Run: nix run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage""
         echo
         
         read -p "Do you want to run these commands now? (y/N): " -n 1 -r
