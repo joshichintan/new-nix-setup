@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Always restart with a new zsh login shell
-if [ -z "$WIZARD_ZSH_RESTARTED" ]; then
-    export WIZARD_ZSH_RESTARTED=1
-    exec zsh -l -c "export WIZARD_ZSH_RESTARTED=1; bash $0 $@"
+
+# Source zshrc and Nix profile scripts at the start to refresh environment
+if [ -f "$HOME/.config/zsh/.zshrc" ]; then
+    echo "[INFO] Sourcing $HOME/.config/zsh/.zshrc to refresh shell environment..."
+    source "$HOME/.config/zsh/.zshrc"
 fi
 
 # Nix Setup Wizard
@@ -791,6 +792,13 @@ main() {
     fi
     
     print_success "Wizard completed successfully!"
+
+    # Source zshrc and Nix profile scripts if they exist
+    if [ -f "$HOME/.config/zsh/.zshrc" ]; then
+        print_status "Sourcing $HOME/.config/zsh/.zshrc to refresh shell environment..."
+        source "$HOME/.config/zsh/.zshrc"
+    fi
+    print_status "Shell environment refreshed. You may need to restart your terminal for all changes to take effect."
 }
 
 # Run the wizard
