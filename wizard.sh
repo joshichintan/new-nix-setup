@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Always restart with a new zsh login shell
+if [ -z "$WIZARD_ZSH_RESTARTED" ]; then
+    export WIZARD_ZSH_RESTARTED=1
+    exec zsh -l -c "export WIZARD_ZSH_RESTARTED=1; bash $0 $@"
+fi
+
 # Nix Setup Wizard
 # This script should be run with bash for best compatibility
 # Usage: bash wizard.sh [--dry-run]
