@@ -7,6 +7,7 @@
   # Home packages
   home.packages = with pkgs; [
     # Development tools
+    mise
     git
     # curl
     # wget
@@ -29,7 +30,7 @@
     # rustup  # Rust toolchain manager
 
     # # Database tools
-    # postgresql
+    postgresql
     # redis
 
     # # Cloud tools
