@@ -364,20 +364,7 @@ install_nix() {
         fi
         
 
-        # Ensure user-level config exists and has experimental features
-        NIX_USER_CONFIG="$HOME/.config/nix/nix.conf"
-        mkdir -p "$HOME/.config/nix"
-        if [[ -f "$NIX_USER_CONFIG" ]]; then
-            if grep -q "experimental-features = nix-command flakes" "$NIX_USER_CONFIG"; then
-                print_success "Nix experimental features already enabled in $NIX_USER_CONFIG"
-            else
-                echo "experimental-features = nix-command flakes" >> "$NIX_USER_CONFIG"
-                print_success "Added experimental features to $NIX_USER_CONFIG"
-            fi
-        else
-            echo "experimental-features = nix-command flakes" > "$NIX_USER_CONFIG"
-            print_success "Created $NIX_USER_CONFIG with experimental features enabled"
-        fi
+        # No config file setup needed. All Nix commands will use --extra-experimental-features 'nix-command flakes'.
         
         # Verify Nix is available
         if command_exists nix; then
@@ -582,23 +569,23 @@ run_build_commands() {
     
     print_status "1. Updating flake..."
     if [[ $DRY_RUN != true ]]; then
-        nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}
+        nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}
     else
-        print_dry_run "Would run: nix flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
+        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
     fi
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
     else
-        print_dry_run "Would run: nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
     fi
     
     print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
+        nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
     else
-        print_dry_run "Would run: nix run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(hostname | cut -d'.' -f1)\\\".activationPackage\""
+        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(hostname | cut -d'.' -f1)\\\".activationPackage\""
     fi
     
     if [[ $DRY_RUN != true ]]; then

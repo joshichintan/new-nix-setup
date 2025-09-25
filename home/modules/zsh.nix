@@ -58,7 +58,7 @@
 
     shellAliases = {
       # General Nix aliases
-      nix-update = "nix flake update --flake .";
+  nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
       nix-gc = "nix-store --gc";
       nix-clean = "nix-collect-garbage -d";
     };
@@ -70,40 +70,40 @@
         local user="$(whoami)"
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix run "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' run "$flake_ref"
       }
-      
+
       hm-build() {
         local user="$(whoami)"
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix build "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref"
       }
-      
+
       hm-check() {
         local user="$(whoami)"
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix build "$flake_ref" --dry-run
+        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref" --dry-run
       }
 
       # nix-darwin functions
       darwin() {
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#$host"
-        sudo nix run nix-darwin#darwin-rebuild -- switch --flake "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake "$flake_ref"
       }
-      
+
       darwin-build() {
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#darwinConfigurations.$host.system"
-        nix build "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref"
       }
-      
+
       darwin-check() {
         local host="$(hostname | cut -d'.' -f1)"
         local flake_ref=".#darwinConfigurations.$host.system"
-        nix build "$flake_ref" --dry-run
+        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref" --dry-run
       }
 
       # Quick rebuild functions
