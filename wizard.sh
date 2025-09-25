@@ -363,24 +363,20 @@ install_nix() {
             . /etc/profile.d/nix.sh
         fi
         
-        # Enable flakes globally
-        print_status "Enabling Nix experimental features globally..."
-        sudo mkdir -p /etc/nix
-        
-        # Check if experimental features are already configured globally
-        if [[ -f /etc/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" /etc/nix/nix.conf; then
-            print_success "Nix experimental features already enabled globally"
+
+        # Ensure user-level config exists and has experimental features
+        NIX_USER_CONFIG="$HOME/.config/nix/nix.conf"
+        mkdir -p "$HOME/.config/nix"
+        if [[ -f "$NIX_USER_CONFIG" ]]; then
+            if grep -q "experimental-features = nix-command flakes" "$NIX_USER_CONFIG"; then
+                print_success "Nix experimental features already enabled in $NIX_USER_CONFIG"
+            else
+                echo "experimental-features = nix-command flakes" >> "$NIX_USER_CONFIG"
+                print_success "Added experimental features to $NIX_USER_CONFIG"
+            fi
         else
-            echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
-            print_success "Nix experimental features enabled globally"
-        fi
-        
-        # Remove user-level config if it exists (no longer needed)
-        if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
-            print_status "Removing user-level Nix config (now handled globally)..."
-            # Remove only the experimental-features line, keep other user configs
-            grep -v "experimental-features = nix-command flakes" ~/.config/nix/nix.conf > ~/.config/nix/nix.conf.tmp && mv ~/.config/nix/nix.conf.tmp ~/.config/nix/nix.conf
-            print_success "User-level experimental features config removed"
+            echo "experimental-features = nix-command flakes" > "$NIX_USER_CONFIG"
+            print_success "Created $NIX_USER_CONFIG with experimental features enabled"
         fi
         
         # Verify Nix is available
@@ -593,9 +589,9 @@ run_build_commands() {
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+        nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
     else
-        print_dry_run "Would run: sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+        print_dry_run "Would run: nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
     fi
     
     print_status "3. Building home configuration..."
