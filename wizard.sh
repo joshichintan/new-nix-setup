@@ -363,16 +363,24 @@ install_nix() {
             . /etc/profile.d/nix.sh
         fi
         
-        # Enable flakes
-        print_status "Enabling Nix flakes..."
-        mkdir -p ~/.config/nix
+        # Enable flakes globally
+        print_status "Enabling Nix experimental features globally..."
+        sudo mkdir -p /etc/nix
         
-        # Check if experimental features are already configured
-        if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
-            print_success "Nix flakes already enabled"
+        # Check if experimental features are already configured globally
+        if [[ -f /etc/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" /etc/nix/nix.conf; then
+            print_success "Nix experimental features already enabled globally"
         else
-            echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-            print_success "Nix flakes enabled"
+            echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
+            print_success "Nix experimental features enabled globally"
+        fi
+        
+        # Remove user-level config if it exists (no longer needed)
+        if [[ -f ~/.config/nix/nix.conf ]] && grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf; then
+            print_status "Removing user-level Nix config (now handled globally)..."
+            # Remove only the experimental-features line, keep other user configs
+            grep -v "experimental-features = nix-command flakes" ~/.config/nix/nix.conf > ~/.config/nix/nix.conf.tmp && mv ~/.config/nix/nix.conf.tmp ~/.config/nix/nix.conf
+            print_success "User-level experimental features config removed"
         fi
         
         # Verify Nix is available
@@ -387,7 +395,7 @@ install_nix() {
         if command_exists nix; then
             print_dry_run "Would check Nix installation (already installed)"
         else
-            print_dry_run "Would install Nix using official installer and enable flakes"
+            print_dry_run "Would install Nix using official installer and enable experimental features globally"
         fi
     fi
 }
@@ -592,9 +600,9 @@ run_build_commands() {
     
     print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+        nix run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
     else
-        print_dry_run "Would run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+        print_dry_run "Would run: nix run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(hostname | cut -d'.' -f1)\\\".activationPackage\""
     fi
     
     if [[ $DRY_RUN != true ]]; then
@@ -717,7 +725,7 @@ main() {
         fi
         echo
         
-        ask_step_preference "Nix" "check and install Nix with flakes"
+        ask_step_preference "Nix" "check and install Nix with global experimental features"
         if [[ $SKIP_INSTALL != true ]]; then
             install_nix
         fi
