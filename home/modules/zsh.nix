@@ -56,6 +56,10 @@
       ];
     };
 
+    sessionVariables = {
+      NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
+    }
+
     shellAliases = {
       # General Nix aliases
   nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
@@ -67,43 +71,28 @@
     initExtra = ''
       # Home Manager functions
       hm() {
-        local user="$(whoami)"
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix --extra-experimental-features 'nix-command flakes' run "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
       }
 
       hm-build() {
-        local user="$(whoami)"
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' build "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
       }
 
       hm-check() {
-        local user="$(whoami)"
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#homeConfigurations.\"$user@$host\".activationPackage"
-        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref" --dry-run
+        nix --extra-experimental-features 'nix-command flakes' build "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage" --dry-run
       }
 
       # nix-darwin functions
       darwin() {
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#$host"
-        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake "${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
       }
 
       darwin-build() {
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#darwinConfigurations.$host.system"
-        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref"
+        nix --extra-experimental-features 'nix-command flakes' build "${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
       }
 
       darwin-check() {
-        local host="$(hostname | cut -d'.' -f1)"
-        local flake_ref=".#darwinConfigurations.$host.system"
-        nix --extra-experimental-features 'nix-command flakes' build "$flake_ref" --dry-run
+        nix --extra-experimental-features 'nix-command flakes' build "${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(hostname | cut -d'.' -f1).system" --dry-run
       }
 
       # Quick rebuild functions
