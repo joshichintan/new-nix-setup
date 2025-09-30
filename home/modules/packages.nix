@@ -7,17 +7,17 @@
   # Home packages
   home.packages = with pkgs; [
     # Development tools
-    # mise
-    git
+    # git
     # curl
     # wget
 
-    # # Programming languages
+    # Programming languages
     # nodejs_20
     # python3
     # rustc
     # cargo
     # go
+    # jdk17  # Java Development Kit 17 (using mise instead)
 
     # # Build tools
     # cmake
@@ -28,6 +28,7 @@
     # fnm  # Node.js version manager
     # pyenv  # Python version manager
     # rustup  # Rust toolchain manager
+    mise  # Runtime manager (better than Homebrew version)
 
     # # Database tools
     # postgresql

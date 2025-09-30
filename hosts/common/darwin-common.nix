@@ -80,6 +80,7 @@ in {
 
     brews = [
       "bitwarden-cli"
+      # "mise"  # Temporarily disabled due to Rosetta 2 issue
       #"borders"
     ];
     taps = [
