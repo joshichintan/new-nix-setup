@@ -731,6 +731,8 @@ main() {
             run_build_commands
         fi
         echo
+        
+        echo
     else
         # Auto mode - install everything
         install_xcode_tools
@@ -765,10 +767,17 @@ main() {
             print_status "  nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
             print_status "  nix --extra-experimental-features 'nix-command flakes' run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
         fi
+        echo
+        
+        echo
     fi
     
     print_success "Wizard completed successfully!"
     print_status "Shell environment refreshed. You may need to restart your terminal for all changes to take effect."
+    echo
+    print_status "Next steps:"
+    print_status "1. Refresh your shell: exec zsh"
+    print_status "2. Set up development environment: setup-dev-environment"
     echo "Exiting shell as setup was successful."
     exit
 }

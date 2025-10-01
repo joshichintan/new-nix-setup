@@ -30,13 +30,17 @@
     # rustup  # Rust toolchain manager
     mise  # Runtime manager (better than Homebrew version)
 
-    # # Database tools
-    # postgresql
+    # Database tools
+    postgresql_13  # PostgreSQL 13
     # redis
+    
+    # JSON and API tools
+    jq  # JSON processor
+    postman  # API development platform
 
     # # Cloud tools
-    # awscli2
-    # kubectl
+    awscli2
+    kubectl
     # docker
     # docker-compose
 

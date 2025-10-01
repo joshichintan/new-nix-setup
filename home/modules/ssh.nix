@@ -7,39 +7,44 @@
   # SSH configuration
   programs.ssh = {
     enable = true;
+    
+    # Global security settings
     extraConfig = ''
-      StrictHostKeyChecking no
+      # Security settings
+      StrictHostKeyChecking ask
+      UserKnownHostsFile ~/.ssh/known_hosts
+      IdentitiesOnly yes
+      AddKeysToAgent yes
+      UseKeychain yes
+      
+      # Connection settings
+      ServerAliveInterval 60
+      ServerAliveCountMax 3
+      TCPKeepAlive yes
+      
+      # Compression and multiplexing
+      Compression yes
+      ControlMaster auto
+      ControlPath ~/.ssh/master-%r@%h:%p
+      ControlPersist 10m
     '';
+    
     matchBlocks = {
-      # ~/.ssh/config
+      # GitHub configuration
       "github.com" = {
         hostname = "ssh.github.com";
         port = 443;
+        user = "git";
+        identityFile = "~/.ssh/id_ed25519";
+        identitiesOnly = true;
       };
+      
+      # Default settings for all hosts
       "*" = {
         user = "root";
+        identitiesOnly = true;
+        addKeysToAgent = "yes";
       };
-      # wd
-      "dev" = {
-        hostname = "100.68.216.79";
-        user = "alex";
-      };
-      # lancs
-      # "e elrond" = {
-      #   hostname = "100.117.223.78";
-      #   user = "alexktz";
-      # };
-      # # jb
-      # "core" = {
-      #   hostname = "demo.selfhosted.show";
-      #   user = "ironicbadger";
-      #   port = 53142;
-      # };
-      # "status" = {
-      #   hostname = "hc.ktz.cloud";
-      #   user = "ironicbadger";
-      #   port = 53142;
-      # };
     };
   };
 }
