@@ -524,7 +524,7 @@ EOF
 # Function to generate flake.nix
 generate_flake() {
     local username=$(whoami)
-    local hostname=$(hostname | cut -d'.' -f1)
+    local hostname=$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d'.' -f1)
     local system=$(detect_architecture)
     local config_dir="${NIX_USER_CONFIG_PATH:-.}"
     
@@ -576,16 +576,16 @@ run_build_commands() {
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)
     else
-        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
     fi
     
     print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
+        nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
     else
-        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(hostname | cut -d'.' -f1)\\\".activationPackage\""
+        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(scutil --get LocalHostName)\\\".activationPackage\""
     fi
     
     if [[ $DRY_RUN != true ]]; then
@@ -753,8 +753,8 @@ main() {
         # Auto mode also asks about build commands
         print_status "Next steps:"
     print_status "  1. Run: nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-    print_status "  2. Run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
-    print_status "  3. Run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage\""
+    print_status "  2. Run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
+    print_status "  3. Run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage\""
         echo
         
         read -p "Do you want to run these commands now? (y/N): " -n 1 -r
@@ -764,8 +764,8 @@ main() {
         else
             print_status "Commands not run. You can run them manually:"
             print_status "  nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-            print_status "  nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
-            print_status "  nix --extra-experimental-features 'nix-command flakes' run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage"
+            print_status "  nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
+            print_status "  nix --extra-experimental-features 'nix-command flakes' run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage"
         fi
         echo
         

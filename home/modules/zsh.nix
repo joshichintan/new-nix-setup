@@ -32,33 +32,48 @@
       '';
       
       functions = lib.mkOrder 1000 ''
-        # Initialize mise
-        eval "$(mise activate zsh)"
+        # Add Rancher Desktop binaries to PATH
+        export PATH="$HOME/.rd/bin:$PATH"
+        
+        # Note: mise is automatically activated via programs.mise.enableZshIntegration
+        # No manual activation needed
+        
+        # Auto-install missing tools when changing directories
+        # autoload -U add-zsh-hook
+        # mise_auto_install() {
+        #   # Check if we're in a directory with mise config files
+        #   if [[ -f .mise.toml ]] || [[ -f .tool-versions ]] || \
+        #      [[ -f .java-version ]] || [[ -f .node-version ]] || [[ -f .python-version ]] || [[ -f .ruby-version ]]; then
+        #     # Check if any tools are missing and install them silently
+        #     mise install --quiet 2>/dev/null
+        #   fi
+        # }
+        # add-zsh-hook chpwd mise_auto_install
         
         # Home Manager functions
         hm() {
-          nix --extra-experimental-features 'nix-command flakes' run "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
+          nix --extra-experimental-features 'nix-command flakes' run "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
 
         hm-build() {
-          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage"
+          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
 
         hm-check() {
-          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(hostname | cut -d'.' -f1)\".activationPackage" --dry-run
+          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage" --dry-run
         }
 
         # nix-darwin functions
         darwin() {
-          sudo nix --extra-experimental-features 'nix-command flakes' run 'nix-darwin#darwin-rebuild' -- switch --flake "''${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)"
+          sudo nix --extra-experimental-features 'nix-command flakes' run 'nix-darwin#darwin-rebuild' -- switch --flake "''${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
         }
 
         darwin-build() {
-          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(hostname | cut -d'.' -f1).system"
+          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system"
         }
 
         darwin-check() {
-          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(hostname | cut -d'.' -f1).system" --dry-run
+          nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system" --dry-run
         }
 
         # Quick rebuild functions
@@ -274,9 +289,11 @@
         }
         
         # Shell refresh function
-        refresh-shell() {
-          echo "🔄 Refreshing shell configuration..."
-          exec zsh
+        reload-shell() {
+          echo "🔄 Reloading shell configuration..."
+          source ~/.zshenv 2>/dev/null || true
+          source "$ZDOTDIR/.zshrc" 2>/dev/null || true
+          echo "✅ Configuration reloaded"
         }
       '';
     in
@@ -316,9 +333,8 @@
       nix-gc = "nix-store --gc";
       nix-clean = "nix-collect-garbage -d";
       
-      # Shell refresh aliases
-      reload = "exec zsh";
-      refresh = "exec zsh";
+      # Shell refresh alias
+      reload = "reload-shell";
     };
   };
 }

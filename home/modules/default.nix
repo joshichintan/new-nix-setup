@@ -10,5 +10,7 @@
     ./tmux.nix
     ./wezterm.nix
     ./ssh.nix
+    ./direnv.nix
+    ./mise.nix
   ];
 }

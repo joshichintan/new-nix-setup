@@ -98,6 +98,8 @@ in {
       # "logitech-options"
       # "slack"
       "spotify"
+      "cursor"
+      "rancher"
       "visual-studio-code"
     ];
     masApps = {

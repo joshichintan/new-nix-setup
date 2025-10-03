@@ -17,7 +17,7 @@
     # rustc
     # cargo
     # go
-    # jdk17  # Java Development Kit 17 (using mise instead)
+    # jdk17  # Java Development Kit 17
 
     # # Build tools
     # cmake
@@ -28,7 +28,7 @@
     # fnm  # Node.js version manager
     # pyenv  # Python version manager
     # rustup  # Rust toolchain manager
-    mise  # Runtime manager (better than Homebrew version)
+    # mise  # Runtime manager (managed by programs.mise in mise.nix)
 
     # Database tools
     postgresql_13  # PostgreSQL 13
@@ -40,7 +40,7 @@
 
     # # Cloud tools
     awscli2
-    kubectl
+    # kubectl
     # docker
     # docker-compose
 

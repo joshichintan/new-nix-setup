@@ -52,13 +52,13 @@ The wizard will:
 3. **Apply system configuration:**
    ```bash
    # Build and switch to nix-darwin configuration
-   sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+   sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)
    ```
 
 4. **Apply Home Manager configuration:**
    ```bash
    # Apply user configuration (standalone)
-   nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+   nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
    ```
 
 ## Environment Setup
@@ -93,7 +93,7 @@ This setup uses **nix-darwin** for system-level configuration with a modern appr
 #### How It Works
 
 ```bash
-sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)
 ```
 
 This command:
@@ -161,7 +161,7 @@ nix flake show
 #### Apply Home Manager Configuration
 ```bash
 # Apply configuration (dynamically generated from hosts.nix)
-nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
 
 # Or list all available configurations first:
 nix flake show
@@ -170,7 +170,7 @@ nix flake show
 #### Build Without Applying
 ```bash
 # Build configuration without activating
-nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
 
 # Then activate manually
 ./result/activate
@@ -179,7 +179,7 @@ nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | c
 #### Check Configuration
 ```bash
 # Check for errors without building
-nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --dry-run
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage --dry-run
 ```
 
 ### Configuration Files
@@ -255,10 +255,10 @@ nix flake lock --update-input nixpkgs
 #### Apply Changes
 ```bash
 # Apply Home Manager changes (fast)
-nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
 
 # Apply system changes (slower)
-sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(hostname | cut -d'.' -f1)
+sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)
 ```
 
 ### Adding New Hosts/Users
@@ -292,10 +292,10 @@ sudo nix run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:
 #### Home Manager Activation Fails
 ```bash
 # Check for errors
-nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage --show-trace
+nix build ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage --show-trace
 
 # Check configuration
-nix eval ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(hostname | cut -d'.' -f1).activationPackage
+nix eval ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
 ```
 
 #### Neovim Issues
@@ -354,7 +354,7 @@ For machines with Nix already installed:
 ### What the Wizard Detects
 
 - **Username**: `$(whoami)` - your current username
-- **Hostname**: `$(hostname | cut -d'.' -f1)` - your machine name
+- **Hostname**: `$(scutil --get LocalHostName)` - your machine name (VPN-safe)
 - **System**: `aarch64-darwin` (Apple Silicon) or `x86_64-darwin` (Intel)
 - **Existing installations**: Checks for nix-darwin and Home Manager
 
