@@ -26,93 +26,121 @@
     syntaxHighlighting.enable = true;
 
     initContent = let
+      # ══════════════════════════════════════════════════════════════════════
+      # SECTION 1: Powerlevel10k Instant Prompt
+      # ══════════════════════════════════════════════════════════════════════
       p10kPrompt = lib.mkOrder 500 ''
-        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]];
-        then source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"; fi
+        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+        fi
       '';
       
+      # ══════════════════════════════════════════════════════════════════════
+      # SECTION 2: Environment Setup, Hooks, and Functions
+      # ══════════════════════════════════════════════════════════════════════
       functions = lib.mkOrder 1000 ''
-        # Add Rancher Desktop binaries to PATH
+        # ──────────────────────────────────────────────────────────────────
+        # PATH Configuration
+        # ──────────────────────────────────────────────────────────────────
         export PATH="$HOME/.rd/bin:$PATH"
         
+        # ──────────────────────────────────────────────────────────────────
+        # mise Hooks (Runtime Version Manager)
+        # ──────────────────────────────────────────────────────────────────
         # Note: mise is automatically activated via programs.mise.enableZshIntegration
-        # No manual activation needed
+        # which sets up automatic environment activation via its own precmd hook
         
-      # Auto-activate mise environment when changing directories
-      autoload -U add-zsh-hook
-      mise_auto_activate() {
-        # Check if mise detects any configuration for current directory
-        if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
-          # Check if any tools are missing and install them (show output only when installing)
-          # Use JSON output for robust detection (more reliable than text parsing)
-          if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
-            mise install || true
-          else
-            mise install --quiet 2>/dev/null || true
-          fi
-          # Activate mise environment for this directory
-          eval "$(mise hook-env -s zsh)"
-          
-          # Only display if there's a project-level config (check if source path is in current dir)
-          local has_local_config=false
-          local current_dir="$PWD"
-          
-          # Check if any tool's source is from a file directly in current directory (not subdirs or parent/global)
-          local json_output=$(mise ls --current --json 2>/dev/null)
-          if echo "$json_output" | grep -q "\"path\": \"$current_dir/[^/]*\""; then
-            has_local_config=true
-          fi
-          
-          if [[ "$has_local_config" == "true" ]]; then
-            # Display active tool versions with tree structure
-            echo "Active Tools"
-            local tools=($(mise ls --current 2>/dev/null | awk '{if ($1 && $2) print $1":"$2}'))
-            local count=''${#tools[@]}
-            local i=1
+        autoload -U add-zsh-hook
+        
+        # Display active tools for project-level configs
+        mise_display_tools() {
+          if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
+            local current_dir="$PWD"
+            local json_output=$(mise ls --current --json 2>/dev/null)
             
-            for tool_version in "''${tools[@]}"; do
-              local tool="''${tool_version%%:*}"
-              local version="''${tool_version##*:}"
-              
-              if [[ $i -eq $count ]]; then
-                echo "└─ $tool → $version"
-              else
-                echo "├─ $tool → $version"
+            # Only display for project-level configs (not global)
+            if echo "$json_output" | grep -q "\"path\": \"$current_dir/[^/]*\""; then
+              # Check if any tools are missing
+              if echo "$json_output" | grep -q '"installed": false'; then
+                return  # Don't display if tools are not installed
               fi
-              ((i++))
-            done
+              
+              echo "Active Tools"
+              local tools=($(mise ls --current 2>/dev/null | awk '{if ($1 && $2) print $1":"$2}'))
+              local count=''${#tools[@]}
+              local i=1
+              
+              for tool_version in "''${tools[@]}"; do
+                local tool="''${tool_version%%:*}"
+                local version="''${tool_version##*:}"
+                
+                if [[ $i -eq $count ]]; then
+                  echo "└─ $tool → $version"
+                else
+                  echo "├─ $tool → $version"
+                fi
+                ((i++))
+              done
+            fi
           fi
-        fi
-      }
-      add-zsh-hook chpwd mise_auto_activate
+        }
         
-        # Home Manager functions
+        # Display tools on directory change
+        mise_chpwd() {
+          mise_display_tools
+        }
+        add-zsh-hook chpwd mise_chpwd
+        
+        # Install missing tools and display if installed
+        typeset -g MISE_PRECMD_FIRST_RUN=1
+        mise_precmd() {
+          # Skip first run to avoid p10k instant prompt interference
+          if [[ $MISE_PRECMD_FIRST_RUN -eq 1 ]]; then
+            MISE_PRECMD_FIRST_RUN=0
+            return
+          fi
+          
+          if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
+            if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
+              echo "» Installing missing tools..."
+              mise install
+              mise_display_tools  # Display after installation
+            fi
+          fi
+        }
+        add-zsh-hook precmd mise_precmd
+        
+        # ──────────────────────────────────────────────────────────────────
+        # Nix Management Functions
+        # ──────────────────────────────────────────────────────────────────
+        
+        # Home Manager
         hm() {
           nix --extra-experimental-features 'nix-command flakes' run "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
-
+        
         hm-build() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
-
+        
         hm-check() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage" --dry-run
         }
-
-        # nix-darwin functions
+        
+        # nix-darwin
         darwin() {
           sudo nix --extra-experimental-features 'nix-command flakes' run 'nix-darwin#darwin-rebuild' -- switch --flake "''${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
         }
-
+        
         darwin-build() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system"
         }
-
+        
         darwin-check() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system" --dry-run
         }
-
-        # Quick rebuild functions
+        
+        # Combined rebuilds
         rebuild() {
           darwin && hm
         }
@@ -125,18 +153,19 @@
           darwin
         }
         
-        # SSH Key Generation
+        # ──────────────────────────────────────────────────────────────────
+        # Development Environment Setup
+        # ──────────────────────────────────────────────────────────────────
+        
         generate-ssh-key() {
           echo "» SSH Key Generation"
           
-          # Check if we're in an interactive shell
           if [[ ! -t 0 ]]; then
             echo "✗ This function requires an interactive shell"
             echo "  Please run this function directly in your terminal"
             return 1
           fi
           
-          # Check if key exists
           if [ -f ~/.ssh/id_ed25519 ]; then
             echo "⚠ SSH key already exists: ~/.ssh/id_ed25519"
             echo "1. Keep existing key"
@@ -205,7 +234,6 @@
           echo "→ Add this key to GitHub: https://github.com/settings/keys"
         }
         
-        # Git Setup
         setup-git-ssh() {
           echo "» Git Configuration"
           
@@ -297,7 +325,6 @@
           echo "✓ Git configured for: $name <$email>"
         }
         
-        # Combined Setup
         setup-dev-environment() {
           echo "» Development Environment Setup"
           
@@ -324,7 +351,10 @@
           echo "✓ Development environment setup complete"
         }
         
-        # Shell refresh function
+        # ──────────────────────────────────────────────────────────────────
+        # Utility Functions
+        # ──────────────────────────────────────────────────────────────────
+        
         reload-shell() {
           echo "» Reloading shell configuration"
           source ~/.zshenv 2>/dev/null || true

@@ -566,30 +566,48 @@ generate_flake() {
 # Function to run build commands
 run_build_commands() {
     print_status "Running build commands..."
+    local failed_commands=()
     
     print_status "1. Updating flake..."
     if [[ $DRY_RUN != true ]]; then
-        nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}
+        if ! nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}; then
+            print_error "✗ Flake update failed!"
+            failed_commands+=("flake update")
+        fi
     else
         print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
     fi
     
     print_status "2. Building darwin configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)
+        if ! sudo nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName); then
+            print_error "✗ Darwin build failed!"
+            failed_commands+=("darwin build")
+        fi
     else
-        print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
+        print_dry_run "Would run: sudo nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
     fi
     
     print_status "3. Building home configuration..."
     if [[ $DRY_RUN != true ]]; then
-        nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
+        if ! nix --extra-experimental-features 'nix-command flakes' run "${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"; then
+            print_error "✗ Home Manager build failed!"
+            failed_commands+=("home build")
+        fi
     else
         print_dry_run "Would run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\\\"$(whoami)@$(scutil --get LocalHostName)\\\".activationPackage\""
     fi
     
     if [[ $DRY_RUN != true ]]; then
-        print_success "All commands completed!"
+        if [[ ${#failed_commands[@]} -eq 0 ]]; then
+            print_success "✓ All commands completed successfully!"
+        else
+            print_error "Some commands failed:"
+            for cmd in "${failed_commands[@]}"; do
+                print_error "  ✗ $cmd"
+            done
+            return 1
+        fi
     else
         print_dry_run "Would complete all build commands"
     fi
@@ -684,6 +702,10 @@ prompt_and_set_hostname() {
 main() {
     print_status "Nix Setup Wizard Starting..."
     print_status "Checking system and running all necessary installations..."
+    
+    # Track wizard status
+    local wizard_errors=()
+    local wizard_skipped=()
 
     # Housekeeping: Prompt for hostname
     prompt_and_set_hostname
@@ -698,73 +720,110 @@ main() {
         # Interactive mode - ask at each step
         ask_step_preference "Xcode Command Line Tools" "check and install Xcode Command Line Tools"
         if [[ $SKIP_INSTALL != true ]]; then
-            install_xcode_tools
+            if ! install_xcode_tools; then
+                wizard_errors+=("Xcode Command Line Tools")
+            fi
+        else
+            wizard_skipped+=("Xcode Command Line Tools")
         fi
         echo
         
         ask_step_preference "Rosetta 2" "check and install Rosetta 2 (if needed)"
         if [[ $SKIP_INSTALL != true ]]; then
-            install_rosetta
+            if ! install_rosetta; then
+                wizard_errors+=("Rosetta 2")
+            fi
+        else
+            wizard_skipped+=("Rosetta 2")
         fi
         echo
         
         ask_step_preference "Nix" "check and install Nix with global experimental features"
         if [[ $SKIP_INSTALL != true ]]; then
-            install_nix
+            if ! install_nix; then
+                wizard_errors+=("Nix installation")
+            fi
+        else
+            wizard_skipped+=("Nix")
         fi
         echo
         
         ask_step_preference "Git Repository" "clone git repository"
         if [[ $SKIP_INSTALL != true ]]; then
-            clone_repo
+            if ! clone_repo; then
+                wizard_errors+=("Git repository clone")
+            fi
+        else
+            wizard_skipped+=("Git repository")
         fi
         echo
         
         ask_step_preference "flake.nix" "generate or update flake.nix configuration"
         if [[ $SKIP_INSTALL != true ]]; then
-            generate_flake
+            if ! generate_flake; then
+                wizard_errors+=("Flake generation")
+            fi
+        else
+            wizard_skipped+=("Flake generation")
         fi
         echo
         
         ask_step_preference "build commands" "run nix build commands (flake update, darwin build, home build)"
         if [[ $SKIP_INSTALL != true ]]; then
-            run_build_commands
+            if ! run_build_commands; then
+                wizard_errors+=("Build commands")
+            fi
+        else
+            wizard_skipped+=("Build commands")
         fi
         echo
         
         echo
     else
         # Auto mode - install everything
-        install_xcode_tools
+        if ! install_xcode_tools; then
+            wizard_errors+=("Xcode Command Line Tools")
+        fi
         echo
         
-        install_rosetta
+        if ! install_rosetta; then
+            wizard_errors+=("Rosetta 2")
+        fi
         echo
         
-        install_nix
+        if ! install_nix; then
+            wizard_errors+=("Nix installation")
+        fi
         echo
         
-        clone_repo
+        if ! clone_repo; then
+            wizard_errors+=("Git repository clone")
+        fi
         echo
         
-        generate_flake
+        if ! generate_flake; then
+            wizard_errors+=("Flake generation")
+        fi
         echo
         
         # Auto mode also asks about build commands
         print_status "Next steps:"
     print_status "  1. Run: nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-    print_status "  2. Run: nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
+    print_status "  2. Run: sudo nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
     print_status "  3. Run: nix --extra-experimental-features 'nix-command flakes' run \"${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage\""
         echo
         
         read -p "Do you want to run these commands now? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            run_build_commands
+            if ! run_build_commands; then
+                wizard_errors+=("Build commands")
+            fi
         else
+            wizard_skipped+=("Build commands")
             print_status "Commands not run. You can run them manually:"
             print_status "  nix --extra-experimental-features 'nix-command flakes' flake update --flake ${NIX_USER_CONFIG_PATH:-.}"
-            print_status "  nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
+            print_status "  sudo nix --extra-experimental-features 'nix-command flakes' run nix-darwin#darwin-rebuild -- switch --flake ${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
             print_status "  nix --extra-experimental-features 'nix-command flakes' run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage"
         fi
         echo
@@ -772,14 +831,48 @@ main() {
         echo
     fi
     
-    print_success "Wizard completed successfully!"
+    # Print wizard summary
+    echo
+    echo "════════════════════════════════════════════"
+    echo "           WIZARD SUMMARY"
+    echo "════════════════════════════════════════════"
+    echo
+    
+    if [[ ${#wizard_errors[@]} -eq 0 ]]; then
+        print_success "✓ All steps completed successfully!"
+    else
+        print_error "Some steps failed:"
+        for step in "${wizard_errors[@]}"; do
+            print_error "  ✗ $step"
+        done
+    fi
+    
+    if [[ ${#wizard_skipped[@]} -gt 0 ]]; then
+        echo
+        print_status "Skipped steps:"
+        for step in "${wizard_skipped[@]}"; do
+            print_status "  ⊗ $step"
+        done
+    fi
+    
+    echo
+    echo "════════════════════════════════════════════"
+    echo
+    
+    if [[ ${#wizard_errors[@]} -gt 0 ]]; then
+        print_error "Wizard completed with errors. Please review the failures above."
+        exit 1
+    else
+        print_success "Wizard completed successfully!"
+    fi
+    
     print_status "Shell environment refreshed. You may need to restart your terminal for all changes to take effect."
     echo
     print_status "Next steps:"
     print_status "1. Refresh your shell: exec zsh"
     print_status "2. Set up development environment: setup-dev-environment"
     echo "Exiting shell as setup was successful."
-    exit
+    exit 0
 }
 
 # Run the wizard
