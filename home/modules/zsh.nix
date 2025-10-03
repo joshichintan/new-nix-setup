@@ -38,17 +38,18 @@
         # Note: mise is automatically activated via programs.mise.enableZshIntegration
         # No manual activation needed
         
-        # Auto-install missing tools when changing directories
-        # autoload -U add-zsh-hook
-        # mise_auto_install() {
-        #   # Check if we're in a directory with mise config files
-        #   if [[ -f .mise.toml ]] || [[ -f .tool-versions ]] || \
-        #      [[ -f .java-version ]] || [[ -f .node-version ]] || [[ -f .python-version ]] || [[ -f .ruby-version ]]; then
-        #     # Check if any tools are missing and install them silently
-        #     mise install --quiet 2>/dev/null
-        #   fi
-        # }
-        # add-zsh-hook chpwd mise_auto_install
+      # Auto-activate mise environment when changing directories
+      autoload -U add-zsh-hook
+      mise_auto_activate() {
+        # Check if mise detects any configuration for current directory
+        if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
+          # Install any missing tools silently
+          mise install --quiet 2>/dev/null || true
+          # Activate mise environment for this directory
+          eval "$(mise hook-env -s zsh)"
+        fi
+      }
+      add-zsh-hook chpwd mise_auto_activate
         
         # Home Manager functions
         hm() {

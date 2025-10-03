@@ -30,7 +30,7 @@
       };
       tools = {
         # Uncomment to set global versions:
-        # java = "temurin-17";
+        java = "temurin-17";
         # node = "20";
         # python = "3.11";
       };
