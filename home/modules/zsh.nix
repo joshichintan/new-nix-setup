@@ -43,10 +43,45 @@
       mise_auto_activate() {
         # Check if mise detects any configuration for current directory
         if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
-          # Install any missing tools silently
-          mise install --quiet 2>/dev/null || true
+          # Check if any tools are missing and install them (show output only when installing)
+          # Use JSON output for robust detection (more reliable than text parsing)
+          if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
+            mise install || true
+          else
+            mise install --quiet 2>/dev/null || true
+          fi
           # Activate mise environment for this directory
           eval "$(mise hook-env -s zsh)"
+          
+          # Only display if there's a project-level config (check if source path is in current dir)
+          local has_local_config=false
+          local current_dir="$PWD"
+          
+          # Check if any tool's source is from a file directly in current directory (not subdirs or parent/global)
+          local json_output=$(mise ls --current --json 2>/dev/null)
+          if echo "$json_output" | grep -q "\"path\": \"$current_dir/[^/]*\""; then
+            has_local_config=true
+          fi
+          
+          if [[ "$has_local_config" == "true" ]]; then
+            # Display active tool versions with tree structure
+            echo "Active Tools"
+            local tools=($(mise ls --current 2>/dev/null | awk '{if ($1 && $2) print $1":"$2}'))
+            local count=''${#tools[@]}
+            local i=1
+            
+            for tool_version in "''${tools[@]}"; do
+              local tool="''${tool_version%%:*}"
+              local version="''${tool_version##*:}"
+              
+              if [[ $i -eq $count ]]; then
+                echo "└─ $tool → $version"
+              else
+                echo "├─ $tool → $version"
+              fi
+              ((i++))
+            done
+          fi
         fi
       }
       add-zsh-hook chpwd mise_auto_activate
@@ -92,18 +127,18 @@
         
         # SSH Key Generation
         generate-ssh-key() {
-          echo "🔑 SSH Key Generation"
+          echo "» SSH Key Generation"
           
           # Check if we're in an interactive shell
           if [[ ! -t 0 ]]; then
-            echo "❌ This function requires an interactive shell"
-            echo "Please run this function directly in your terminal"
+            echo "✗ This function requires an interactive shell"
+            echo "  Please run this function directly in your terminal"
             return 1
           fi
           
           # Check if key exists
           if [ -f ~/.ssh/id_ed25519 ]; then
-            echo "⚠️  SSH key already exists: ~/.ssh/id_ed25519"
+            echo "⚠ SSH key already exists: ~/.ssh/id_ed25519"
             echo "1. Keep existing key"
             echo "2. Replace with new key (backup old)"
             echo "3. Show existing key"
@@ -113,23 +148,23 @@
             
             case $choice in
               1)
-                echo "ℹ️  Keeping existing key"
+                echo "• Keeping existing key"
                 cat ~/.ssh/id_ed25519.pub
                 return 0
                 ;;
               2)
-                echo "🔄 Replacing existing key..."
+                echo "→ Replacing existing key..."
                 # Backup old key
                 cp ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.backup.$(date +%Y%m%d_%H%M%S)
                 cp ~/.ssh/id_ed25519.pub ~/.ssh/id_ed25519.pub.backup.$(date +%Y%m%d_%H%M%S)
                 ;;
               3)
-                echo "📋 Existing public key:"
+                echo "→ Existing public key:"
                 cat ~/.ssh/id_ed25519.pub
                 return 0
                 ;;
               *)
-                echo "❌ Invalid option"
+                echo "✗ Invalid option"
                 return 1
                 ;;
             esac
@@ -140,12 +175,12 @@
           while true; do
             vared -p "Enter your email address: " email
             if [ -z "$email" ]; then
-              echo "❌ Email is required"
+              echo "✗ Email is required"
               continue
             fi
             
             if [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-              echo "❌ Invalid email format. Please try again."
+              echo "✗ Invalid email format"
               continue
             fi
             
@@ -163,21 +198,21 @@
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_ed25519
           
-          echo "✅ SSH key generated for: $email"
-          echo "📋 Public key:"
+          echo "✓ SSH key generated for: $email"
+          echo "→ Public key:"
           cat ~/.ssh/id_ed25519.pub
           echo ""
-          echo "🔗 Add this key to GitHub: https://github.com/settings/keys"
+          echo "→ Add this key to GitHub: https://github.com/settings/keys"
         }
         
         # Git Setup
         setup-git-ssh() {
-          echo "⚙️  Setting up Git..."
+          echo "» Git Configuration"
           
           # Check if we're in an interactive shell
           if [[ ! -t 0 ]]; then
-            echo "❌ This function requires an interactive shell"
-            echo "Please run this function directly in your terminal"
+            echo "✗ This function requires an interactive shell"
+            echo "  Please run this function directly in your terminal"
             return 1
           fi
           
@@ -186,9 +221,9 @@
           existing_email=$(git config --global user.email 2>/dev/null)
           
           if [ -n "$existing_name" ] || [ -n "$existing_email" ]; then
-            echo "⚠️  Git is already configured:"
-            echo "   Name: $existing_name"
-            echo "   Email: $existing_email"
+            echo "⚠ Git is already configured:"
+            echo "  Name: $existing_name"
+            echo "  Email: $existing_email"
             echo ""
             echo "1. Keep existing configuration"
             echo "2. Replace with new configuration"
@@ -199,17 +234,17 @@
             
             case $choice in
               1)
-                echo "ℹ️  Keeping existing configuration"
+                echo "• Keeping existing configuration"
                 return 0
                 ;;
               2)
-                echo "🔄 Replacing configuration..."
+                echo "→ Replacing configuration..."
                 ;;
               3)
-                echo "🔄 Updating specific values..."
+                echo "→ Updating specific values..."
                 ;;
               *)
-                echo "❌ Invalid option"
+                echo "✗ Invalid option"
                 return 1
                 ;;
             esac
@@ -224,7 +259,7 @@
             while true; do
               vared -p "Enter your Git username: " name
               if [ -z "$name" ]; then
-                echo "❌ Username is required"
+                echo "✗ Username is required"
                 continue
               fi
               break
@@ -234,18 +269,18 @@
           # Get email
           email=""
           if [ "$choice" = "3" ] && [ -n "$existing_email" ]; then
-            vared -p "Enter your Git email [$existing_email]: " email
+            vared -p "Enter your Git email [$existing_email]: " name
             email="${email:-$existing_email}"
           else
             while true; do
               vared -p "Enter your Git email: " email
               if [ -z "$email" ]; then
-                echo "❌ Email is required"
+                echo "✗ Email is required"
                 continue
               fi
               
               if [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-                echo "❌ Invalid email format. Please try again."
+                echo "✗ Invalid email format"
                 continue
               fi
               
@@ -259,69 +294,65 @@
           git config --global init.defaultBranch main
           git config --global pull.rebase false
           
-          echo "✅ Git configured for: $name <$email>"
+          echo "✓ Git configured for: $name <$email>"
         }
         
         # Combined Setup
         setup-dev-environment() {
-          echo "🚀 Setting up development environment..."
+          echo "» Development Environment Setup"
           
           # SSH Key setup
           generate-ssh-key
           
           echo ""
-          echo "⏳ Waiting for you to add the SSH key to GitHub..."
+          echo "→ Waiting for you to add the SSH key to GitHub..."
           dummy=""
           vared -p "Press Enter after adding the key to GitHub... " dummy
           
           # Test GitHub connection
-          echo "🧪 Testing GitHub connection..."
+          echo "→ Testing GitHub connection..."
           if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-            echo "✅ GitHub connection successful!"
+            echo "✓ GitHub connection successful"
           else
-            echo "❌ GitHub connection failed. Please check your key."
+            echo "✗ GitHub connection failed"
             return 1
           fi
           
           # Git setup
           setup-git-ssh
           
-          echo "✅ Development environment setup complete!"
+          echo "✓ Development environment setup complete"
         }
         
         # Shell refresh function
         reload-shell() {
-          echo "🔄 Reloading shell configuration..."
+          echo "» Reloading shell configuration"
           source ~/.zshenv 2>/dev/null || true
           source "$ZDOTDIR/.zshrc" 2>/dev/null || true
-          echo "✅ Configuration reloaded"
+          echo "✓ Configuration reloaded"
         }
       '';
     in
       lib.mkMerge [ p10kPrompt functions ];
 
+    # Native Nix plugins (much faster than zplug)
     plugins = [
+      {
+        name = "powerlevel10k";
+        src = pkgs.zsh-powerlevel10k;
+        file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
+      }
       {
         name = "powerlevel10k-config";
         src = ../p10k-config;
         file = ".p10k.zsh";
       }
+      {
+        name = "fzf-tab";
+        src = pkgs.zsh-fzf-tab;
+        file = "share/fzf-tab/fzf-tab.plugin.zsh";
+      }
     ];
-
-    zplug = {
-      enable = true;
-      zplugHome = "${config.xdg.dataHome}/zplug";
-      plugins = [
-        {
-          name = "Aloxaf/fzf-tab";
-          tags = [as:plugin depth:1];
-        }
-        {
-          name = "romkatv/powerlevel10k";
-          tags = ["as:theme" "depth:1"];
-        }
-      ];
-    };
 
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
@@ -330,12 +361,18 @@
 
     shellAliases = {
       # General Nix aliases
-  nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
+      nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
       nix-gc = "nix-store --gc";
       nix-clean = "nix-collect-garbage -d";
       
       # Shell refresh alias
       reload = "reload-shell";
+      
+      # Mise aliases
+      mise-reload = "mise_auto_activate";
+      
+      # Config editing aliases
+      nix-config = "nvim $NIX_USER_CONFIG_PATH";
     };
   };
 }
