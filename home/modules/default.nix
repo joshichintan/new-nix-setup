@@ -12,5 +12,6 @@
     ./ssh.nix
     ./direnv.nix
     ./mise.nix
+    ./ecr.nix
   ];
 }
