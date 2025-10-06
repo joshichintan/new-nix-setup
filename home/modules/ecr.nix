@@ -1,11 +1,12 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 {
-  smartEcrHelper = pkgs.writeShellScriptBin "smart-ecr-helper" ''
+  home.packages = [
+    (pkgs.writeShellScriptBin "smart-ecr-helper" ''
     #!/bin/bash
     # Get the profile name from the calling binary name
     PROFILE_NAME=$(basename "$0" | sed 's/^ecr-login-//')
-    ECR_HELPER="docker-credential-helper-ecr"
-    LOG_FILE="''${XDG_CACHE_HOME:-$HOME/.cache}/ecr-''${PROFILE_NAME}.log"
+    ECR_HELPER="docker-credential-ecr-login"
+    LOG_FILE="${config.xdg.cacheHome}/ecr-''${PROFILE_NAME}.log"
     
     # Logging function
     log() {
@@ -60,6 +61,6 @@
     
     # Execute main function
     main "$@"
-  '';
-
+  '')
+  ];
 }

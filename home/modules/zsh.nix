@@ -30,8 +30,8 @@
       # SECTION 1: Powerlevel10k Instant Prompt
       # ══════════════════════════════════════════════════════════════════════
       p10kPrompt = lib.mkOrder 500 ''
-        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
-          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+        if [[ -r "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+          source "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh"
         fi
       '';
       
@@ -118,28 +118,28 @@
         hm() {
           nix --extra-experimental-features 'nix-command flakes' run "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
-        
+
         hm-build() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage"
         }
-        
+
         hm-check() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.\"$(whoami)@$(scutil --get LocalHostName)\".activationPackage" --dry-run
         }
-        
+
         # nix-darwin
         darwin() {
           sudo nix --extra-experimental-features 'nix-command flakes' run 'nix-darwin#darwin-rebuild' -- switch --flake "''${NIX_USER_CONFIG_PATH:-.}#$(scutil --get LocalHostName)"
         }
-        
+
         darwin-build() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system"
         }
-        
+
         darwin-check() {
           nix --extra-experimental-features 'nix-command flakes' build "''${NIX_USER_CONFIG_PATH:-.}#darwinConfigurations.$(scutil --get LocalHostName).system" --dry-run
         }
-        
+
         # Combined rebuilds
         rebuild() {
           darwin && hm
@@ -485,8 +485,8 @@
           
           echo "Available profiles:"
           local profile_array=($profiles)
-          for i in "${!profile_array[@]}"; do
-            echo "  $((i+1)). ${profile_array[i]}"
+          for i in "''${!profile_array[@]}"; do
+            echo "  $((i+1)). ''${profile_array[i]}"
           done
           
           echo ""
@@ -500,14 +500,14 @@
           fi
           
           # Validate index
-          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
             echo "✗ Invalid profile selection: $selected_index"
             return 1
           fi
           
           # Convert to 0-based index
           array_index=$((selected_index-1))
-          selected_profile="${profile_array[$array_index]}"
+          selected_profile="''${profile_array[$array_index]}"
           
           echo ""
           
@@ -590,8 +590,8 @@
           
           echo "Available profiles:"
           local profile_array=($profiles)
-          for i in "${!profile_array[@]}"; do
-            echo "  $((i+1)). ${profile_array[i]}"
+          for i in "''${!profile_array[@]}"; do
+            echo "  $((i+1)). ''${profile_array[i]}"
           done
           
           echo ""
@@ -605,14 +605,14 @@
           fi
           
           # Validate index
-          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
             echo "✗ Invalid profile selection: $selected_index"
             return 1
           fi
           
           # Convert to 0-based index
           array_index=$((selected_index-1))
-          selected_profile="${profile_array[$array_index]}"
+          selected_profile="''${profile_array[$array_index]}"
           
           echo ""
           echo "Selected profile: $selected_profile"
@@ -622,7 +622,7 @@
           dependent_ecr_profiles=()
           if [[ -f ~/.docker/config.json ]]; then
             # Find ECR profiles that use this AWS profile
-            ecr_helper_name="ecr-login-${selected_profile}"
+            ecr_helper_name="ecr-login-''${selected_profile}"
             dependent_registries=$(jq -r --arg helper "$ecr_helper_name" '.credHelpers // {} | to_entries[] | select(.value == $helper) | .key' ~/.docker/config.json 2>/dev/null)
             
             if [[ -n "$dependent_registries" ]]; then
@@ -646,9 +646,9 @@
             fi
           done
           
-          if [[ ${#dependent_role_profiles[@]} -gt 0 ]]; then
+          if [[ ''${#dependent_role_profiles[@]} -gt 0 ]]; then
             echo "⚠ WARNING: These profiles depend on this profile as source profile:"
-            for profile in "${dependent_role_profiles[@]}"; do
+            for profile in "''${dependent_role_profiles[@]}"; do
               echo "  - $profile (role profile)"
             done
             echo ""
@@ -669,10 +669,10 @@
               remove_aws_profile_only "$selected_profile"
               ;;
             2)
-              remove_aws_profile_with_ecr "$selected_profile" "${dependent_ecr_profiles[@]}"
+              remove_aws_profile_with_ecr "$selected_profile" "''${dependent_ecr_profiles[@]}"
               ;;
             3)
-              remove_aws_profile_complete "$selected_profile" "${dependent_ecr_profiles[@]}" "${dependent_role_profiles[@]}"
+              remove_aws_profile_complete "$selected_profile" "''${dependent_ecr_profiles[@]}" "''${dependent_role_profiles[@]}"
               ;;
             4)
               echo "→ Removal cancelled"
@@ -713,8 +713,8 @@
           
           echo "Available profiles:"
           local profile_array=($profiles)
-          for i in "${!profile_array[@]}"; do
-            echo "  $((i+1)). ${profile_array[i]}"
+          for i in "''${!profile_array[@]}"; do
+            echo "  $((i+1)). ''${profile_array[i]}"
           done
           
           echo ""
@@ -728,14 +728,14 @@
           fi
           
           # Validate index
-          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
             echo "✗ Invalid profile selection: $selected_index"
             return 1
           fi
           
           # Convert to 0-based index
           array_index=$((selected_index-1))
-          selected_profile="${profile_array[$array_index]}"
+          selected_profile="''${profile_array[$array_index]}"
           
           echo ""
           echo "Testing profile: $selected_profile"
@@ -878,8 +878,8 @@
           # Select source profile
           echo "Select source profile:"
           local profile_array=($source_profiles)
-          for i in "${!profile_array[@]}"; do
-            echo "  $((i+1)). ${profile_array[i]}"
+          for i in "''${!profile_array[@]}"; do
+            echo "  $((i+1)). ''${profile_array[i]}"
           done
           
           selected_index=""
@@ -891,14 +891,14 @@
           fi
           
           # Validate index
-          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
             echo "✗ Invalid profile selection: $selected_index"
             return 1
           fi
           
           # Convert to 0-based index
           array_index=$((selected_index-1))
-          source_profile="${profile_array[$array_index]}"
+          source_profile="''${profile_array[$array_index]}"
           
           echo ""
           
@@ -1054,7 +1054,7 @@
           
           # Update Access Key ID
           if [[ -n "$current_access_key" ]]; then
-            masked_key="${current_access_key:0:4}...${current_access_key: -4}"
+            masked_key="''${current_access_key:0:4}...''${current_access_key: -4}"
             read -p "AWS Access Key ID ($masked_key): " new_access_key
             if [[ -n "$new_access_key" ]]; then
               aws configure set aws_access_key_id "$new_access_key" --profile "$profile"
@@ -1222,8 +1222,8 @@
           # Select AWS profile
           echo "Select AWS profile:"
           local profile_array=($aws_profiles)
-          for i in "${!profile_array[@]}"; do
-            echo "  $((i+1)). ${profile_array[i]}"
+          for i in "''${!profile_array[@]}"; do
+            echo "  $((i+1)). ''${profile_array[i]}"
           done
           
           selected_index=""
@@ -1235,14 +1235,14 @@
           fi
           
           # Validate index
-          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+          if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
             echo "✗ Invalid profile selection: $selected_index"
             return 1
           fi
           
           # Convert to 0-based index
           array_index=$((selected_index-1))
-          selected_profile="${profile_array[$array_index]}"
+          selected_profile="''${profile_array[$array_index]}"
           
           echo ""
           
@@ -1291,8 +1291,8 @@
                 profile_array+=("$registry -> $helper")
               done <<< "$existing_profiles"
               
-              for i in "${!profile_array[@]}"; do
-                echo "  $((i+1)). ${profile_array[i]}"
+              for i in "''${!profile_array[@]}"; do
+                echo "  $((i+1)). ''${profile_array[i]}"
               done
               
               echo ""
@@ -1306,14 +1306,14 @@
               fi
               
               # Validate index
-              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
                 echo "✗ Invalid profile selection: $selected_index"
                 return 1
               fi
               
               # Convert to 0-based index
               array_index=$((selected_index-1))
-              selected_profile="${profile_array[$array_index]}"
+              selected_profile="''${profile_array[$array_index]}"
               
               # Extract registry and helper from selection
               registry_url=$(echo "$selected_profile" | cut -d' ' -f1)
@@ -1356,8 +1356,8 @@
                 profile_array+=("$registry -> $helper")
               done <<< "$existing_profiles"
               
-              for i in "${!profile_array[@]}"; do
-                echo "  $((i+1)). ${profile_array[i]}"
+              for i in "''${!profile_array[@]}"; do
+                echo "  $((i+1)). ''${profile_array[i]}"
               done
               
               echo ""
@@ -1371,14 +1371,14 @@
               fi
               
               # Validate index
-              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
                 echo "✗ Invalid profile selection: $selected_index"
                 return 1
               fi
               
               # Convert to 0-based index
               array_index=$((selected_index-1))
-              selected_profile="${profile_array[$array_index]}"
+              selected_profile="''${profile_array[$array_index]}"
               
               # Extract registry and helper from selection
               registry_url=$(echo "$selected_profile" | cut -d' ' -f1)
@@ -1405,12 +1405,12 @@
                   jq --arg registry "$registry_url" 'del(.credHelpers[$registry])' \
                      ~/.docker/config.json > ~/.docker/config.json.tmp && \
                   mv ~/.docker/config.json.tmp ~/.docker/config.json
-                  
-                  # Remove binary
-                  binary_path="${XDG_DATA_HOME:-$HOME/.local/share}/bin/$helper_name"
-                  if [[ -f "$binary_path" ]]; then
-                    rm "$binary_path"
-                  fi
+
+                # Remove binary
+                binary_path="${config.xdg.dataHome}/bin/$helper_name"
+                if [[ -f "$binary_path" ]]; then
+                  rm "$binary_path"
+                fi
                   
                   echo "✓ ECR profile removed: $registry_url"
                   ;;
@@ -1466,8 +1466,8 @@
                 profile_array+=("$registry -> $helper")
               done <<< "$existing_profiles"
               
-              for i in "${!profile_array[@]}"; do
-                echo "  $((i+1)). ${profile_array[i]}"
+              for i in "''${!profile_array[@]}"; do
+                echo "  $((i+1)). ''${profile_array[i]}"
               done
               
               echo ""
@@ -1481,14 +1481,14 @@
               fi
               
               # Validate index
-              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ${#profile_array[@]} ]]; then
+              if [[ ! "$selected_index" =~ ^[0-9]+$ ]] || [[ $selected_index -lt 1 ]] || [[ $selected_index -gt ''${#profile_array[@]} ]]; then
                 echo "✗ Invalid profile selection: $selected_index"
                 return 1
               fi
               
               # Convert to 0-based index
               array_index=$((selected_index-1))
-              selected_profile="${profile_array[$array_index]}"
+              selected_profile="''${profile_array[$array_index]}"
               
               # Extract registry and helper from selection
               registry_url=$(echo "$selected_profile" | cut -d' ' -f1)
@@ -1533,11 +1533,11 @@
             return 1
           fi
           
-          # Create binary name and path
-          binary_name="ecr-login-${profile_name}"
-          binary_path="${XDG_DATA_HOME:-$HOME/.local/share}/bin/$binary_name"
-          
-          # Ensure directory exists
+        # Create binary name and path
+        binary_name="ecr-login-''${profile_name}"
+        binary_path="${config.xdg.dataHome}/bin/$binary_name"
+        
+        # Ensure directory exists
           mkdir -p "$(dirname "$binary_path")"
           
           # Create the profile-specific binary
@@ -1639,7 +1639,7 @@ EOF
 
     shellAliases = {
       # General Nix aliases
-      nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
+  nix-update = "nix --extra-experimental-features 'nix-command flakes' flake update --flake .";
       nix-gc = "nix-store --gc";
       nix-clean = "nix-collect-garbage -d";
       

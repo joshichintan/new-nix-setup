@@ -3,10 +3,7 @@
   lib,
   pkgs,
   ...
-}: let
-  # Import the smartEcrHelper from ecr.nix
-  smartEcrHelper = import ./ecr.nix { inherit pkgs; };
-in {
+}: {
   # Home packages
   home.packages = with pkgs; [
     # Development tools
@@ -43,8 +40,8 @@ in {
 
     # # Cloud tools
     awscli2
-    docker-credential-helper-ecr
-    smartEcrHelper.smartEcrHelper
+    amazon-ecr-credential-helper
+    # Note: smart-ecr-helper is provided by ecr.nix module
     # kubectl
     # docker
     # docker-compose
