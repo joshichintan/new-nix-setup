@@ -83,7 +83,7 @@ let
         
         if [[ "$profile_num" =~ ^[0-9]+$ ]]; then
             local selected_profile
-            selected_profile=$(echo "$profiles" | sed -n "${profile_num}p")
+            selected_profile=$(echo "$profiles" | sed -n "''${profile_num}p")
             if [[ -n "$selected_profile" ]]; then
                 echo "$selected_profile"
                 return 0
@@ -294,7 +294,7 @@ let
         fi
         
         local registry
-        registry=$(echo "$registries" | sed -n "${reg_num}p")
+        registry=$(echo "$registries" | sed -n "''${reg_num}p")
         if [[ -z "$registry" ]]; then
             echo "Invalid registry selection"
             return 1
@@ -350,7 +350,7 @@ let
         fi
         
         local registry
-        registry=$(echo "$registries" | sed -n "${reg_num}p")
+        registry=$(echo "$registries" | sed -n "''${reg_num}p")
         if [[ -z "$registry" ]]; then
             echo "Invalid registry selection"
             return 1
@@ -385,7 +385,7 @@ let
         fi
         
         local registry
-        registry=$(echo "$registries" | sed -n "${reg_num}p")
+        registry=$(echo "$registries" | sed -n "''${reg_num}p")
         if [[ -z "$registry" ]]; then
             echo "Invalid registry selection"
             return 1
@@ -595,7 +595,7 @@ let
                     echo ""
                     read -p "Enter registry number to remove: " reg_num
                     local registry
-                    registry=$(list_ecr_registries | sed -n "${reg_num}p")
+                    registry=$(list_ecr_registries | sed -n "''${reg_num}p")
                     if [[ -n "$registry" ]]; then
                         read -p "Remove registry '$registry'? (y/N): " confirm
                         if [[ "$confirm" =~ ^[Yy]$ ]]; then

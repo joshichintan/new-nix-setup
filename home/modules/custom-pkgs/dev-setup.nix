@@ -154,7 +154,7 @@ let
       name=""
       if [ "$choice" = "3" ] && [ -n "$existing_name" ]; then
         vared -p "Enter your Git username [$existing_name]: " name
-        name="${name:-$existing_name}"
+        name="''${name:-$existing_name}"
       else
         while true; do
           vared -p "Enter your Git username: " name
@@ -176,7 +176,7 @@ let
       email=""
       if [ "$choice" = "3" ] && [ -n "$existing_email" ]; then
         vared -p "Enter your Git email [$existing_email]: " email
-        email="${email:-$existing_email}"
+        email="''${email:-$existing_email}"
       else
         while true; do
           vared -p "Enter your Git email: " email

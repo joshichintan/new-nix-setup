@@ -53,24 +53,46 @@ let
         echo "$start_url $region"
     }
     
+    # Create backup of a file
+    create_backup() {
+        local file="$1"
+        cp "$file" "$file.backup.$(date +%s)"
+    }
+    
+    # Prompt for SSO login when token is expired
+    prompt_sso_login() {
+        local session_name="$1"
+        
+        # Check if we're in an interactive terminal
+        if [[ ! -t 0 ]]; then
+            echo "  ✗ Non-interactive terminal. Cannot prompt for login." >&2
+            return 1
+        fi
+        
+        echo "  ⚠ Session '$session_name' has expired token."
+        read -p "  Login now? (y/N): " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            echo "  → Logging into SSO session: $session_name"
+            if aws sso login --sso-session "$session_name"; then
+                echo "  ✓ Login successful"
+                return 0
+            else
+                echo "  ✗ Login failed"
+                return 1
+            fi
+        else
+            echo "  → Skipping session (user declined login)"
+            return 1
+        fi
+    }
+    
     # Check if SSO token is valid
     has_valid_token() {
         local start_url="$1"
         local region="$2"
-        
-        if [[ -d "$aws_cache_dir" ]]; then
-            for cache_file in "$aws_cache_dir"/*.json; do
-                if [[ -f "$cache_file" ]]; then
-                    if jq -e --arg url "$start_url" --arg reg "$region" '
-                        select(.accessToken and .expiresAt and .startUrl==$url and .region==$reg) |
-                        select((.expiresAt | fromdateiso8601) > now)
-                    ' "$cache_file" >/dev/null 2>&1; then
-                        return 0
-                    fi
-                fi
-            done
-        fi
-        return 1
+        local token=$(get_access_token "$start_url" "$region")
+        [[ -n "$token" ]]
     }
     
     # List AWS profiles
@@ -134,7 +156,7 @@ let
         local account_clean=$(clean_name "$account_name")
         local role_clean=$(clean_name "$role_name")
         
-        echo "${session_clean}_${account_clean}_${role_clean}"
+        echo "''${session_clean}_''${account_clean}_''${role_clean}"
     }
     
     # Get existing profiles for a specific SSO session
@@ -227,8 +249,8 @@ EOF
         fi
         
         local start_url region
-        start_url="${details%|*}"
-        region="${details#*|}"
+        start_url="''${details%|*}"
+        region="''${details#*|}"
         
         # Get access token
         local token
@@ -268,13 +290,13 @@ EOF
             local roles_json
             roles_json=$(aws sso list-account-roles --region "$region" --access-token "$token" --account-id "$account_id" --output json 2>/dev/null)
             if [[ $? -eq 0 ]]; then
-                echo "$roles_json" | jq -r '.roleList[].roleName' > "$temp_dir/roles_${account_id}.txt"
+                echo "$roles_json" | jq -r '.roleList[].roleName' > "$temp_dir/roles_''${account_id}.txt"
                 
                 while read -r role_name; do
                     local profile_name
                     profile_name=$(generate_profile_name "$session_name" "$account_name" "$role_name")
                     echo "$profile_name" >> "$available_file"
-                done < "$temp_dir/roles_${account_id}.txt"
+                done < "$temp_dir/roles_''${account_id}.txt"
             fi
         done < "$temp_dir/accounts.txt"
         
@@ -302,7 +324,7 @@ EOF
                 echo "    + $profile_name"
                 # Extract account and role info from profile name
                 local account_name role_name
-                account_name=$(echo "$profile_name" | sed "s/^${session_name}_//" | sed 's/_[^_]*$//')
+                account_name=$(echo "$profile_name" | sed "s/^''${session_name}_//" | sed 's/_[^_]*$//')
                 role_name=$(echo "$profile_name" | sed "s/.*_//")
                 
                 # Find account ID
@@ -335,7 +357,7 @@ EOF
         fi
         
         # Create backup
-        cp "$HOME/.aws/config" "$HOME/.aws/config.backup.$(date +%s)"
+        create_backup "$HOME/.aws/config"
         
         # Process each session
         while IFS= read -r session; do
@@ -343,7 +365,13 @@ EOF
                 echo "✓ $session (syncing profiles)"
                 sync_session_profiles "$session"
             else
-                echo "✗ $session (no valid token, skipping)"
+                echo "✗ $session (no valid token)"
+                if prompt_sso_login "$session"; then
+                    echo "✓ $session (syncing profiles)"
+                    sync_session_profiles "$session"
+                else
+                    echo "✗ $session (skipping - no valid token)"
+                fi
             fi
         done < <(echo "$sessions")
         
@@ -385,7 +413,7 @@ EOF
         read -p "Enter session number to update: " session_num
         
         local session
-        session=$(list_sso_sessions | sed -n "${session_num}p")
+        session=$(list_sso_sessions | sed -n "''${session_num}p")
         
         if [[ -z "$session" ]]; then
             echo "Invalid session number"
@@ -418,7 +446,7 @@ EOF
         temp_config=$(mktemp)
         
         # Create backup
-        cp "$aws_config" "$aws_config.backup.$(date +%s)"
+        create_backup "$aws_config"
         
         # Remove SSO session and associated profiles
         awk -v session="$session_name" '
@@ -513,7 +541,7 @@ EOF
                     echo ""
                     read -p "Enter session number to remove: " session_num
                     local session
-                    session=$(list_sso_sessions | sed -n "${session_num}p")
+                    session=$(list_sso_sessions | sed -n "''${session_num}p")
                     if [[ -n "$session" ]]; then
                         read -p "Remove session '$session'? (y/N): " confirm
                         if [[ "$confirm" =~ ^[Yy]$ ]]; then
