@@ -870,9 +870,10 @@ main() {
     echo
     print_status "Next steps:"
     print_status "1. Refresh your shell: exec zsh"
-    print_status "2. Set up development environment: setup-dev-environment"
-    print_status "3. Set up AWS profiles: setup-aws-profile"
-    print_status "4. Set up ECR profiles: setup-ecr-profiles"
+    print_status "2. Set up development environment: dev-setup"
+    print_status "3. Set up AWS profiles: aws-manager"
+    print_status "4. Set up ECR registries: ecr-manager"
+    print_status "5. Manage Nix configurations: nix-manager"
     echo "Exiting shell as setup was successful."
     exit 0
 }
