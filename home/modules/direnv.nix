@@ -20,12 +20,6 @@
         warn_timeout = "5s";
       };
     };
-    
-    stdlib = ''
-      # Custom direnv functions
-      # Note: mise is globally activated via shell hook in zsh.nix
-      # No need for mise-specific direnv integration
-    '';
   };
 }
 
