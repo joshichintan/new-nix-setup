@@ -94,8 +94,8 @@
             done
           fi
           
-          # Show message only if no valid tokens found
-          if [[ "$has_valid" == "false" ]]; then
+          # Show message only if no valid tokens found and not during initialization
+          if [[ "$has_valid" == "false" && -z "$P10K_INITIALIZATION_COMPLETE" ]]; then
             echo "⚠ No active AWS SSO sessions"
           fi
         }
@@ -109,11 +109,11 @@
         autoload -U add-zsh-hook
         
         # Install missing tools and display if installed
-        typeset -g MISE_PRECMD_FIRST_RUN=1
+        typeset -g P10K_INITIALIZATION_COMPLETE=1
         mise_precmd() {
           # Skip first run to avoid p10k instant prompt interference
-          if [[ $MISE_PRECMD_FIRST_RUN -eq 1 ]]; then
-            MISE_PRECMD_FIRST_RUN=0
+          if [[ $P10K_INITIALIZATION_COMPLETE -eq 1 ]]; then
+            P10K_INITIALIZATION_COMPLETE=0
             # Check AWS SSO tokens on first run (shell startup)
             check_aws_sso_tokens
             return
