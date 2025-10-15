@@ -45,7 +45,8 @@
     command_execution_time  # duration of the last command
     background_jobs         # presence of background jobs
     direnv                  # direnv status (https://direnv.net/)
-    asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
+    # asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
+    mise                    # mise version manager (https://mise.jdx.dev/)
     virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
@@ -566,6 +567,93 @@
   typeset -g POWERLEVEL9K_DIRENV_FOREGROUND=178
   # Custom icon.
   # typeset -g POWERLEVEL9K_DIRENV_VISUAL_IDENTIFIER_EXPANSION='⭐'
+
+  ###############[ MISE: mise version manager (https://github.com/jdxcode/mise) ]###############
+  # https://github.com/romkatv/powerlevel10k
+  # https://github.com/jdxcode/mise
+  # [Feature request: add segment for mise](https://github.com/romkatv/powerlevel10k/issues/2212)
+  # This is port asdf to mise
+  function prompt_mise() {
+    local plugins=("${(@f)$(mise current 2>/dev/null)}")
+    local plugin
+    for plugin in "${plugins[@]}"; do
+      local parts=("${(@s/ /)plugin}")
+      local tool=${(U)parts[1]}
+      local version=${parts[2]}
+      p10k segment -r -i "${tool}_ICON" -s $tool -t "$version"
+    done
+  }
+
+  # Default mise color. Only used to display tools for which there is no color override (see below).
+  # Tip:  Override this parameter for ${TOOL} with POWERLEVEL9K_MISE_${TOOL}_FOREGROUND.
+  typeset -g POWERLEVEL9K_MISE_FOREGROUND=66
+
+  # Hide tool versions that don't come from one of these sources.
+  typeset -g POWERLEVEL9K_MISE_SOURCES=(shell local global)
+
+  # If set to false, hide tool versions that are the same as global.
+  typeset -g POWERLEVEL9K_MISE_PROMPT_ALWAYS_SHOW=true
+
+  # If set to false, hide tool versions that are equal to "system".
+  typeset -g POWERLEVEL9K_MISE_SHOW_SYSTEM=true
+
+  # Ruby version from mise.
+  typeset -g POWERLEVEL9K_MISE_RUBY_FOREGROUND=168
+
+  # Python version from mise.
+  typeset -g POWERLEVEL9K_MISE_PYTHON_FOREGROUND=37
+
+  # Go version from mise.
+  typeset -g POWERLEVEL9K_MISE_GOLANG_FOREGROUND=172
+
+  # Node.js version from mise.
+  typeset -g POWERLEVEL9K_MISE_NODEJS_FOREGROUND=70
+
+  typeset -g POWERLEVEL9K_MISE_DENO_FOREGROUND=27
+
+  typeset -g POWERLEVEL9K_MISE_BUN_FOREGROUND=214
+
+  # Rust version from mise.
+  typeset -g POWERLEVEL9K_MISE_RUST_FOREGROUND=37
+
+  # .NET Core version from mise.
+  typeset -g POWERLEVEL9K_MISE_DOTNET_CORE_FOREGROUND=134
+
+  # Flutter version from mise.
+  typeset -g POWERLEVEL9K_MISE_FLUTTER_FOREGROUND=38
+
+  # Lua version from mise.
+  typeset -g POWERLEVEL9K_MISE_LUA_FOREGROUND=32
+
+  # Java version from mise.
+  typeset -g POWERLEVEL9K_MISE_JAVA_FOREGROUND=32
+
+  # Perl version from mise.
+  typeset -g POWERLEVEL9K_MISE_PERL_FOREGROUND=67
+
+  # Erlang version from mise.
+  typeset -g POWERLEVEL9K_MISE_ERLANG_FOREGROUND=125
+
+  # Elixir version from mise.
+  typeset -g POWERLEVEL9K_MISE_ELIXIR_FOREGROUND=129
+
+  # Postgres version from mise.
+  typeset -g POWERLEVEL9K_MISE_POSTGRES_FOREGROUND=31
+
+  # PHP version from mise.
+  typeset -g POWERLEVEL9K_MISE_PHP_FOREGROUND=99
+
+  # Haskell version from mise.
+  typeset -g POWERLEVEL9K_MISE_HASKELL_FOREGROUND=172
+
+  # Julia version from mise.
+  typeset -g POWERLEVEL9K_MISE_JULIA_FOREGROUND=70
+
+  # Scala version from mise.
+  typeset -g POWERLEVEL9K_MISE_SCALA_FOREGROUND=196
+
+  # Swift version from mise.
+  typeset -g POWERLEVEL9K_MISE_SWIFT_FOREGROUND=208
 
   ###############[ asdf: asdf version manager (https://github.com/asdf-vm/asdf) ]###############
   # Default asdf color. Only used to display tools for which there is no color override (see below).
@@ -1700,6 +1788,10 @@
   # can slow down prompt by 1-2 milliseconds, so it's better to keep it turned off unless you
   # really need it.
   typeset -g POWERLEVEL9K_DISABLE_HOT_RELOAD=true
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Custom mise segment is now sourced from p10k.mise.zsh
+  # This keeps the main p10k config clean and modular
 
   # If p10k is already loaded, reload configuration.
   # This works even with POWERLEVEL9K_DISABLE_HOT_RELOAD=true.

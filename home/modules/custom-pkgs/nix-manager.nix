@@ -46,8 +46,103 @@ let
       darwin
     }
     
+    # Show usage information
+    show_usage() {
+      echo "Nix Manager - Manage your Nix configurations"
+      echo ""
+      echo "Usage: nix-mgr [OPTION]"
+      echo ""
+      echo "Options:"
+      echo "  -h, --help              Show this help message"
+      echo "  -i, --interactive       Run interactive menu (default)"
+      echo ""
+      echo "Home Manager commands:"
+      echo "  hm                      Apply Home Manager configuration"
+      echo "  hm-build                Build Home Manager configuration (dry run)"
+      echo "  hm-check                Check Home Manager configuration for errors"
+      echo ""
+      echo "Darwin System commands:"
+      echo "  darwin                  Rebuild Darwin system"
+      echo "  darwin-build            Build Darwin system (dry run)"
+      echo "  darwin-check            Check Darwin system for errors"
+      echo ""
+      echo "Combined commands:"
+      echo "  rebuild                 Rebuild both Darwin system and Home Manager"
+      echo "  rebuild-home            Rebuild Home Manager only"
+      echo "  rebuild-system          Rebuild Darwin system only"
+      echo ""
+      echo "Examples:"
+      echo "  nix-mgr hm              # Apply Home Manager configuration"
+      echo "  nix-mgr darwin          # Rebuild Darwin system"
+      echo "  nix-mgr rebuild         # Rebuild both"
+      echo "  nix-mgr hm-check        # Check Home Manager for errors"
+    }
+
     # Main Nix Manager Menu
     nix_manager() {
+      # Handle command line arguments
+      case "''${1:-}" in
+        -h|--help)
+          show_usage
+          return 0
+          ;;
+        hm)
+          echo "Rebuilding Home Manager..."
+          rebuild-home
+          return 0
+          ;;
+        hm-build)
+          echo "Building Home Manager (dry run)..."
+          hm-build
+          return 0
+          ;;
+        hm-check)
+          echo "Checking Home Manager..."
+          hm-check
+          return 0
+          ;;
+        darwin)
+          echo "Rebuilding Darwin System..."
+          rebuild-system
+          return 0
+          ;;
+        darwin-build)
+          echo "Building Darwin System (dry run)..."
+          darwin-build
+          return 0
+          ;;
+        darwin-check)
+          echo "Checking Darwin System..."
+          darwin-check
+          return 0
+          ;;
+        rebuild)
+          echo "Rebuilding Both Home Manager and Darwin System..."
+          rebuild
+          return 0
+          ;;
+        rebuild-home)
+          echo "Rebuilding Home Manager..."
+          rebuild-home
+          return 0
+          ;;
+        rebuild-system)
+          echo "Rebuilding Darwin System..."
+          rebuild-system
+          return 0
+          ;;
+        -i|--interactive|"")
+          # Run interactive menu
+          ;;
+        *)
+          echo "Unknown option: $1"
+          echo ""
+          show_usage
+          return 1
+          ;;
+      esac
+
+      # Interactive menu
       while true; do
         echo ""
         echo "Nix Management"

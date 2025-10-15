@@ -108,45 +108,6 @@
         
         autoload -U add-zsh-hook
         
-        # Display active tools for project-level configs
-        mise_display_tools() {
-          if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
-            local current_dir="$PWD"
-            local json_output=$(mise ls --current --json 2>/dev/null)
-            
-            # Only display for project-level configs (not global)
-            if echo "$json_output" | grep -q "\"path\": \"$current_dir/[^/]*\""; then
-              # Check if any tools are missing
-              if echo "$json_output" | grep -q '"installed": false'; then
-                return  # Don't display if tools are not installed
-              fi
-              
-              echo "Active Tools"
-              local tools=($(mise ls --current 2>/dev/null | awk '{if ($1 && $2) print $1":"$2}'))
-              local count=''${#tools[@]}
-              local i=1
-              
-              for tool_version in "''${tools[@]}"; do
-                local tool="''${tool_version%%:*}"
-                local version="''${tool_version##*:}"
-                
-                if [[ $i -eq $count ]]; then
-                  echo "└─ $tool → $version"
-                else
-                  echo "├─ $tool → $version"
-                fi
-                ((i++))
-              done
-            fi
-          fi
-        }
-        
-        # Display tools on directory change
-        mise_chpwd() {
-          mise_display_tools
-        }
-        add-zsh-hook chpwd mise_chpwd
-        
         # Install missing tools and display if installed
         typeset -g MISE_PRECMD_FIRST_RUN=1
         mise_precmd() {
@@ -162,7 +123,6 @@
             if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
               echo "» Installing missing tools..."
               mise install
-              mise_display_tools  # Display after installation
             fi
           fi
         }
