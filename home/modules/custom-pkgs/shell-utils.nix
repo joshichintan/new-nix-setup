@@ -1,57 +1,46 @@
 { config, pkgs, ... }:
-let
-  # Shell Utils Script
-  shellUtilsScript = pkgs.writeShellScriptBin "shell-utils" ''
-    #!/bin/bash
-    set -euo pipefail
-    
-    # Shell Utility Functions
-    
-    reload-shell() {
-      echo "» Reloading shell configuration"
-      source ~/.zshenv 2>/dev/null || true
-      source "$ZDOTDIR/.zshrc" 2>/dev/null || true
-      echo "✓ Configuration reloaded"
-    }
-    
-    # Main Shell Utils Menu
-    shell_utils() {
-      while true; do
-        echo ""
-        echo "Shell Utilities"
-        echo "==============="
-        echo "1) Reload Shell Configuration"
-        echo "2) Exit"
-        echo ""
-        read -p "Select option (1-2): " choice
-        
-        case $choice in
-            1)
-                reload-shell
-                ;;
-            2)
-                break
-                ;;
-            *)
-                echo "Invalid option"
-                ;;
-        esac
-      done
-    }
-    
-    # Execute the utils
-    shell_utils "$@"
-  '';
-
-in
 {
-  home.packages = [
-    shellUtilsScript
-  ];
-
-  # Shell aliases for easy access
+  # Simple shell aliases
   programs.zsh.shellAliases = {
-    shell-utils = "shell-utils";
-    reload = "reload-shell";
+    # Shell utilities
+    reload = "source ~/.zshenv 2>/dev/null || true && source \"$ZDOTDIR/.zshrc\" 2>/dev/null || true";
+    
+    # Dev setup methods
+    generate-ssh-key = "generate_ssh_key";
+    setup-git-ssh = "setup_git_ssh";
+    setup-dev-environment = "setup_dev_environment";
   };
+
+  # Dev setup functions
+  programs.zsh.initExtra = ''
+    # Development setup functions
+    generate_ssh_key() {
+      echo "» Generating SSH key..."
+      ssh-keygen -t ed25519 -C "$(git config user.email)" -f ~/.ssh/id_ed25519 -N ""
+      chmod 600 ~/.ssh/id_ed25519
+      chmod 644 ~/.ssh/id_ed25519.pub
+      ssh-add ~/.ssh/id_ed25519
+      echo "✓ SSH key generated and added to agent"
+      echo "→ Public key:"
+      cat ~/.ssh/id_ed25519.pub
+    }
+    
+    setup_git_ssh() {
+      echo "» Git configuration commands:"
+      echo "git config --global user.name \"Your Name\""
+      echo "git config --global user.email \"your@email.com\""
+      echo "git config --global init.defaultBranch main"
+      echo "git config --global pull.rebase false"
+    }
+    
+    setup_dev_environment() {
+      echo "» Setting up development environment..."
+      generate_ssh_key
+      echo ""
+      echo "→ Add your SSH key to GitHub: https://github.com/settings/keys"
+      echo ""
+      setup_git_ssh
+      echo "✓ Development environment setup complete"
+    }
+  '';
 }
