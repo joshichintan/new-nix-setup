@@ -127,6 +127,18 @@
           fi
         }
         add-zsh-hook precmd mise_precmd
+        
+        # ──────────────────────────────────────────────────────────────────
+        # Source Shell Utilities
+        # ──────────────────────────────────────────────────────────────────
+        if [[ -f "${config.xdg.configHome}/zsh/shell-utils.sh" ]]; then
+          source "${config.xdg.configHome}/zsh/shell-utils.sh"
+        fi
+        
+        # Source Dev Tools
+        if [[ -f "${config.xdg.configHome}/zsh/dev-tools.sh" ]]; then
+          source "${config.xdg.configHome}/zsh/dev-tools.sh"
+        fi
       '';
     in
       lib.mkMerge [ p10kPrompt functions ];
@@ -150,6 +162,9 @@
       }
     ];
 
+    # Enable  CLI completion
+    enableCompletion = true;
+
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
     };
@@ -169,6 +184,12 @@
       
       # Config editing aliases
       nix-config = "nvim $NIX_USER_CONFIG_PATH";
+      
+      # Core utilities (functions are available directly)
+      # hm, darwin, reload, nix-gc, nix-clean are available as functions
+      
+      # Dev tools (functions are available directly)
+      # git-setup and ssh-setup are available as functions
     };
   };
 }

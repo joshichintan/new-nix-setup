@@ -1,46 +1,51 @@
 { config, pkgs, ... }:
 {
-  # Simple shell aliases
-  programs.zsh.shellAliases = {
-    # Shell utilities
-    reload = "source ~/.zshenv 2>/dev/null || true && source \"$ZDOTDIR/.zshrc\" 2>/dev/null || true";
+  # Create shell script with core utilities only
+  home.file."${config.xdg.configHome}/zsh/shell-utils.sh".text = ''
+    #!/bin/bash
     
-    # Dev setup methods
-    generate-ssh-key = "generate_ssh_key";
-    setup-git-ssh = "setup_git_ssh";
-    setup-dev-environment = "setup_dev_environment";
-  };
+    # =============================================================================
+    # CORE UTILITIES
+    # =============================================================================
+    
+    hm() {
+      echo "» Running garbage collection..."
+      nix-collect-garbage
 
-  # Dev setup functions
-  programs.zsh.initExtra = ''
-    # Development setup functions
-    generate_ssh_key() {
-      echo "» Generating SSH key..."
-      ssh-keygen -t ed25519 -C "$(git config user.email)" -f ~/.ssh/id_ed25519 -N ""
-      chmod 600 ~/.ssh/id_ed25519
-      chmod 644 ~/.ssh/id_ed25519.pub
-      ssh-add ~/.ssh/id_ed25519
-      echo "✓ SSH key generated and added to agent"
-      echo "→ Public key:"
-      cat ~/.ssh/id_ed25519.pub
+      USERNAME=$(whoami)
+      HOSTNAME=$(scutil --get LocalHostName | sed 's/\.local$//')
+      CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
+
+      echo "» Activating Home Manager via activationPackage..."
+      nix --extra-experimental-features 'nix-command flakes' run \
+        "''${CONFIG_PATH}#homeConfigurations.''${USERNAME}@''${HOSTNAME}.activationPackage"
     }
     
-    setup_git_ssh() {
-      echo "» Git configuration commands:"
-      echo "git config --global user.name \"Your Name\""
-      echo "git config --global user.email \"your@email.com\""
-      echo "git config --global init.defaultBranch main"
-      echo "git config --global pull.rebase false"
+    darwin() {
+      echo "» Running garbage collection..."
+      nix-collect-garbage
+      
+      HOSTNAME=$(scutil --get LocalHostName | sed 's/\.local$//')
+      CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
+      
+      sudo nix --extra-experimental-features 'nix-command flakes' run \
+        'nix-darwin#darwin-rebuild' -- switch --flake "''${CONFIG_PATH}#''${HOSTNAME}"
     }
     
-    setup_dev_environment() {
-      echo "» Setting up development environment..."
-      generate_ssh_key
-      echo ""
-      echo "→ Add your SSH key to GitHub: https://github.com/settings/keys"
-      echo ""
-      setup_git_ssh
-      echo "✓ Development environment setup complete"
+    reload() {
+      source ~/.zshenv 2>/dev/null || true
+      source "$ZDOTDIR/.zshrc" 2>/dev/null || true
     }
+    
+    nix-gc() {
+      nix-collect-garbage
+    }
+    
+    nix-clean() {
+      nix-collect-garbage -d
+    }
+    
+    # Export functions for zsh
+    export -f hm darwin reload nix-gc nix-clean
   '';
 }

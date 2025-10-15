@@ -7,8 +7,8 @@
   # Git configuration
   programs.git = {
     enable = true;
-    userEmail = "chintanjoshi2012@gmail.com";
-    userName = "Chintan Joshi";
+    # userEmail = "chintanjoshi2012@gmail.com";  # Remove this - managed by dev tools
+    # userName = "Chintan Joshi";                # Remove this - managed by dev tools
     diff-so-fancy.enable = true;
     lfs.enable = true;
     extraConfig = {
