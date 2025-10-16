@@ -29,6 +29,147 @@
     };
     syntaxHighlighting.enable = true;
 
+    # Oh My Zsh configuration - minimal and working plugins only
+    oh-my-zsh = {
+      enable = true;
+      plugins = [
+        # Core utilities (verified to exist)
+        "aliases"
+        "colored-man-pages"
+        "command-not-found"
+        "copypath"
+        "copyfile"
+        "dirhistory"
+        "extract"
+        "history"
+        "jsontools"
+        "urltools"
+        "web-search"
+        "z"
+        
+        # Version managers (verified to exist)
+        "nvm"
+        "pyenv"
+        "rbenv"
+        "rvm"
+        
+        # Languages & Frameworks (verified to exist)
+        "node"
+        "npm"
+        "yarn"
+        "composer"
+        "pip"
+        "rust"
+        "golang"
+        "ruby"
+        "rails"
+        "rake"
+        "gem"
+        "bundler"
+        "coffee"
+        "cake"
+        "capistrano"
+        "celery"
+        "ember-cli"
+        "gulp"
+        "grunt"
+        "heroku"
+        "jira"
+        "laravel"
+        "laravel5"
+        "lein"
+        "mix"
+        "mvn"
+        "perl"
+        "phing"
+        "pipenv"
+        "poetry"
+        "react-native"
+        "scala"
+        "sbt"
+        "spring"
+        "symfony"
+        "symfony2"
+        "thor"
+        "vagrant"
+        "vagrant-prompt"
+        "wp-cli"
+        "yii"
+        "yii2"
+        
+        # Cloud & DevOps (verified to exist)
+        "aws"
+        "azure"
+        "docker"
+        "docker-compose"
+        "kubectl"
+        "helm"
+        "minikube"
+        "terraform"
+        "ansible"
+        "cloudfoundry"
+        "codeclimate"
+        "gcloud"
+        "kops"
+        "kubectx"
+        "salt"
+        
+        # Databases (verified to exist)
+        "postgres"
+        "redis-cli"
+        "mysql-macports"
+        
+        # Build Tools (verified to exist)
+        "ant"
+        "bower"
+        "debian"
+        "fabric"
+        "fastfile"
+        "gradle"
+        "macports"
+        "mercurial"
+        "ng"
+        "pass"
+        "pep8"
+        "per-directory-history"
+        "pow"
+        "powder"
+        "repo"
+        "rsync"
+        "sublime"
+        "svn"
+        "svn-fast-info"
+        "systemadmin"
+        "systemd"
+        "taskwarrior"
+        "terminitor"
+        "textastic"
+        "textmate"
+        "tmux"
+        "tmux-cssh"
+        "tmuxinator"
+        "torrent"
+        "ubuntu"
+        "ufw"
+        "universalarchive"
+        "vault"
+        "vi-mode"
+        "vim-interaction"
+        "virtualenv"
+        "vscode"
+        "vundle"
+        "wakeonlan"
+        "watson"
+        "wd"
+        "xcode"
+        "yum"
+        "zbell"
+        "zeus"
+        "zoxide"
+        "zsh-interactive-cd"
+      ];
+    };
+
     initContent = let
       # ══════════════════════════════════════════════════════════════════════
       # SECTION 1: Powerlevel10k Instant Prompt
@@ -57,77 +198,48 @@
             return 0
           fi
           
-          # Check if AWS config exists
-          if [[ ! -f "$HOME/.aws/config" ]]; then
-            return 0
+          local P10K_INITIALIZATION_COMPLETE=false
+          if [[ -n "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
+            P10K_INITIALIZATION_COMPLETE=true
           fi
           
-          # Get list of SSO sessions
-          local sessions
-          sessions=$(grep '^\[sso-session ' "$HOME/.aws/config" 2>/dev/null | sed 's/^\[sso-session //' | sed 's/\]$//' | sort)
-          
-          if [[ -z "$sessions" ]]; then
-            return 0
-          fi
-          
-          # Check if any session has valid token
-          local has_valid=false
           local aws_cache_dir="$HOME/.aws/sso/cache"
+          local current_time=$(date +%s)
+          local valid_tokens=0
           
           if [[ -d "$aws_cache_dir" ]]; then
-            for session in $sessions; do
-              # Get session details
-              local start_url region
-              start_url=$(grep -A 10 "^\[sso-session $session\]" "$HOME/.aws/config" 2>/dev/null | grep 'sso_start_url' | cut -d'=' -f2 | tr -d ' ')
-              region=$(grep -A 10 "^\[sso-session $session\]" "$HOME/.aws/config" 2>/dev/null | grep 'sso_region' | cut -d'=' -f2 | tr -d ' ')
-              
-              if [[ -n "$start_url" && -n "$region" ]]; then
-                # Check for valid token
-                for cache_file in "$aws_cache_dir"/*.json; do
-                  if [[ -f "$cache_file" ]]; then
-                    if jq -e --arg url "$start_url" --arg reg "$region" '
-                      select(.accessToken and .expiresAt and .startUrl==$url and .region==$reg) |
-                      select((.expiresAt | fromdateiso8601) > now)
-                    ' "$cache_file" >/dev/null 2>&1; then
-                      has_valid=true
-                      break 2
-                    fi
+            for cache_file in "$aws_cache_dir"/*.json; do
+              if [[ -f "$cache_file" ]]; then
+                local expires_at=$(jq -r '.expiresAt' "$cache_file" 2>/dev/null)
+                if [[ -n "$expires_at" && "$expires_at" != "null" ]]; then
+                  local expires_time=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$expires_at" +%s 2>/dev/null || echo "0")
+                  if [[ $current_time -lt $expires_time ]]; then
+                    valid_tokens=$((valid_tokens + 1))
                   fi
-                done
+                fi
               fi
             done
           fi
           
-          # Show message only if no valid tokens found and not during initialization
-          if [[ "$has_valid" == "false" && -z "$P10K_INITIALIZATION_COMPLETE" ]]; then
-            echo "⚠ No active AWS SSO sessions"
+          if [[ $valid_tokens -eq 0 && "$P10K_INITIALIZATION_COMPLETE" == true ]]; then
+            echo "  ⚠ AWS SSO tokens expired or not found. Run 'aws sso login' for each session."
           fi
         }
+        add-zsh-hook precmd check_aws_sso_tokens
         
         # ──────────────────────────────────────────────────────────────────
-        # mise Hooks (Runtime Version Manager)
+        # Mise Auto-activation and Installation
         # ──────────────────────────────────────────────────────────────────
-        # Note: mise is automatically activated via programs.mise.enableZshIntegration
-        # which sets up automatic environment activation via its own precmd hook
-        
-        autoload -U add-zsh-hook
-        
-        # Install missing tools and display if installed
-        typeset -g P10K_INITIALIZATION_COMPLETE=1
         mise_precmd() {
           # Skip first run to avoid p10k instant prompt interference
-          if [[ $P10K_INITIALIZATION_COMPLETE -eq 1 ]]; then
-            P10K_INITIALIZATION_COMPLETE=0
-            # Check AWS SSO tokens on first run (shell startup)
-            check_aws_sso_tokens
-            return
+          if [[ -z "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
+            return 0
           fi
           
-          if mise ls --current &>/dev/null && [[ -n "$(mise ls --current 2>/dev/null)" ]]; then
-            if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
-              echo "» Installing missing tools..."
-              mise install
-            fi
+          # Install missing tools and display if installed
+          if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
+            echo "» Installing missing tools..."
+            mise install
           fi
         }
         add-zsh-hook precmd mise_precmd
@@ -172,7 +284,6 @@
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
     };
-
 
     shellAliases = {
       # General Nix aliases
