@@ -7,8 +7,6 @@
   # Git configuration
   programs.git = {
     enable = true;
-    # userEmail = "chintanjoshi2012@gmail.com";  # Remove this - managed by dev tools
-    # userName = "Chintan Joshi";                # Remove this - managed by dev tools
     diff-so-fancy.enable = true;
     lfs.enable = true;
     extraConfig = {
@@ -23,5 +21,21 @@
         rebase = true;
       };
     };
+  };
+
+  # Create the Git config file explicitly at the XDG location
+  home.file."${config.xdg.configHome}/git/config".text = ''
+    [init]
+        defaultBranch = main
+    [merge]
+        conflictStyle = diff3
+        tool = meld
+    [pull]
+        rebase = true
+  '';
+
+  # Set GIT_CONFIG_GLOBAL to use XDG location
+  home.sessionVariables = {
+    GIT_CONFIG_GLOBAL = "${config.xdg.configHome}/git/config";
   };
 }

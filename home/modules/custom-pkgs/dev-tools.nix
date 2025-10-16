@@ -1,151 +1,44 @@
 { config, pkgs, ... }:
 {
-  # Create shell script with dev tools using subcommands
+  # Create shell script with dev tools
   home.file."${config.xdg.configHome}/zsh/dev-tools.sh".text = ''
     #!/bin/bash
     
     # =============================================================================
-    # DEV TOOLS - GIT SETUP
+    # DEV TOOLS - GENERIC SSH KEY MANAGEMENT
     # =============================================================================
     
-    git-setup() {
-      local command=''${1:-help}
-      local name=''${2:-personal}
-      
-      case "$command" in
-        "create")
-          echo "» Creating git config: $name"
-          
-          # Check if config already exists
-          if [[ -f ~/.config/git/config_$name ]]; then
-            echo "⚠ Git config ~/.config/git/config_$name already exists"
-            echo "Use 'git-setup update $name' to update or 'git-setup delete $name' to remove"
-            return 1
-          fi
-          
-          # Create ~/.config/git/ directory
-          mkdir -p ~/.config/git
-          
-          # Get user input
-          echo "Enter your full name:"
-          read -r full_name
-          echo "Enter your email:"
-          read -r email
-          
-          # Create git config
-          cat > ~/.config/git/config_$name << EOF
-[user]
-    name = $full_name
-    email = $email
-[init]
-    defaultBranch = main
-[pull]
-    rebase = false
-[core]
-    editor = nvim
-EOF
-          
-          echo "✓ Git config created: ~/.config/git/config_$name"
-          echo "→ Use: git config --file ~/.config/git/config_$name"
-          ;;
-          
-        "update")
-          echo "» Updating git config: $name"
-          
-          if [[ ! -f ~/.config/git/config_$name ]]; then
-            echo "⚠ Git config ~/.config/git/config_$name does not exist"
-            echo "Use 'git-setup create $name' to create it"
-            return 1
-          fi
-          
-          # Get user input
-          echo "Enter your full name:"
-          read -r full_name
-          echo "Enter your email:"
-          read -r email
-          
-          # Update git config
-          cat > ~/.config/git/config_$name << EOF
-[user]
-    name = $full_name
-    email = $email
-[init]
-    defaultBranch = main
-[pull]
-    rebase = false
-[core]
-    editor = nvim
-EOF
-          
-          echo "✓ Git config updated: ~/.config/git/config_$name"
-          ;;
-          
-        "delete")
-          echo "» Deleting git config: $name"
-          
-          if [[ ! -f ~/.config/git/config_$name ]]; then
-            echo "⚠ Git config ~/.config/git/config_$name does not exist"
-            return 1
-          fi
-          
-          echo "Are you sure you want to delete ~/.config/git/config_$name? (y/N)"
-          read -r confirm
-          if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            rm ~/.config/git/config_$name
-            echo "✓ Git config deleted: ~/.config/git/config_$name"
-          else
-            echo "✗ Deletion cancelled"
-          fi
-          ;;
-          
-        "ls"|"list")
-          echo "» Git configurations:"
-          if [[ -d ~/.config/git ]]; then
-            for config_file in ~/.config/git/config_*; do
-              if [[ -f "$config_file" ]]; then
-                local name=$(basename "$config_file" | sed 's/config_//')
-                local name_val=$(grep 'name =' "$config_file" | cut -d'=' -f2 | tr -d ' ')
-                local email_val=$(grep 'email =' "$config_file" | cut -d'=' -f2 | tr -d ' ')
-                echo "  $name: $name_val <$email_val>"
-              fi
-            done
-          else
-            echo "  No git configurations found"
-          fi
-          ;;
-          
-        "help"|*)
-          echo "Git Setup Manager"
-          echo ""
-          echo "Usage: git-setup <command> [name]"
-          echo ""
-          echo "Commands:"
-          echo "  create [name]  Create new git config (default: personal)"
-          echo "  update [name]  Update existing git config (default: personal)"
-          echo "  delete [name]  Delete git config (default: personal)"
-          echo "  ls            List all git configs"
-          echo "  help          Show this help"
-          echo ""
-          echo "Examples:"
-          echo "  git-setup create personal"
-          echo "  git-setup update work"
-          echo "  git-setup delete custom"
-          echo "  git-setup ls"
-          ;;
-      esac
-    }
-    
-    # =============================================================================
-    # DEV TOOLS - SSH SETUP
-    # =============================================================================
-    
+    # Generic SSH Setup Manager
     ssh-setup() {
       local command=''${1:-help}
-      local name=''${2:-personal}
+      local name=''${2}
+      local email=''${3}
+      local host=''${4}
+      local port=''${5:-443}
+      local user=''${6}
       
       case "$command" in
         "create")
           echo "» Creating SSH key: $name"
+          
+          # Validate required parameters
+          if [[ -z "$name" ]]; then
+            echo "✗ Error: name is required"
+            echo "Usage: ssh-setup create <name> <email> <host> [port] <user>"
+            return 1
+          fi
+          
+          if [[ -z "$host" ]]; then
+            echo "✗ Error: host is required"
+            echo "Usage: ssh-setup create <name> <email> <host> [port] <user>"
+            return 1
+          fi
+          
+          if [[ -z "$user" ]]; then
+            echo "✗ Error: user is required"
+            echo "Usage: ssh-setup create <name> <email> <host> [port] <user>"
+            return 1
+          fi
           
           # Check if key already exists
           if [[ -f ~/.ssh/id_ed25519_$name ]]; then
@@ -154,37 +47,40 @@ EOF
             return 1
           fi
           
-          # Generate SSH key
-          ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)-$name" -f ~/.ssh/id_ed25519_$name -N ""
-          
-          # Set proper permissions
+          # Generate SSH key (with or without email comment)
+          if [[ -n "$email" ]]; then
+            ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519_$name -N ""
+          else
+            ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_$name -N ""
+          fi
           chmod 600 ~/.ssh/id_ed25519_$name
           chmod 644 ~/.ssh/id_ed25519_$name.pub
           
           # Add to SSH agent
           ssh-add ~/.ssh/id_ed25519_$name
           
-          # Update SSH config
-          if [[ ! -f ~/.ssh/config ]]; then
-            touch ~/.ssh/config
-            chmod 600 ~/.ssh/config
-          fi
+          # Create SSH config directory
+          mkdir -p ~/.ssh/config.d
           
-          # Add host mapping to SSH config
-          cat >> ~/.ssh/config << EOF
-
-Host github-$name
-  HostName github.com
-  User git
+          # Create generic SSH config
+          cat > ~/.ssh/config.d/$name.conf << EOF
+Host $name
+  HostName $host
+  Port $port
+  User $user
   IdentityFile ~/.ssh/id_ed25519_$name
+  IdentitiesOnly yes
+  AddKeysToAgent yes
 EOF
           
           echo "✓ SSH key generated: id_ed25519_$name"
-          echo "✓ SSH config updated for github-$name"
+          echo "✓ SSH config created: ~/.ssh/config.d/$name.conf"
+          echo "✓ Key added to SSH agent"
+          echo ""
           echo "→ Public key:"
           cat ~/.ssh/id_ed25519_$name.pub
           echo ""
-          echo "→ Add this key to GitHub: https://github.com/settings/keys"
+          echo "→ Usage: ssh -T $name"
           ;;
           
         "renew")
@@ -196,17 +92,18 @@ EOF
             return 1
           fi
           
+          # Get email from existing key
+          local email=$(ssh-keygen -l -f ~/.ssh/id_ed25519_$name 2>/dev/null | cut -d' ' -f3- || echo "")
+          
           # Backup existing key
           cp ~/.ssh/id_ed25519_$name ~/.ssh/id_ed25519_$name.backup
           cp ~/.ssh/id_ed25519_$name.pub ~/.ssh/id_ed25519_$name.pub.backup
           
           # Remove from SSH agent
-          ssh-add -d ~/.ssh/id_ed25519_$name 2>/dev/null || true
+          ssh-add -d ~/.ssh/id_ed25519_$name 2> /dev/null || true
           
           # Generate new key
-          ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)-$name" -f ~/.ssh/id_ed25519_$name -N ""
-          
-          # Set proper permissions
+          ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519_$name -N ""
           chmod 600 ~/.ssh/id_ed25519_$name
           chmod 644 ~/.ssh/id_ed25519_$name.pub
           
@@ -215,10 +112,9 @@ EOF
           
           echo "✓ SSH key renewed: id_ed25519_$name"
           echo "✓ Backup saved: id_ed25519_$name.backup"
+          echo ""
           echo "→ New public key:"
           cat ~/.ssh/id_ed25519_$name.pub
-          echo ""
-          echo "→ Update this key in GitHub: https://github.com/settings/keys"
           ;;
           
         "delete")
@@ -233,61 +129,121 @@ EOF
           read -r confirm
           if [[ "$confirm" =~ ^[Yy]$ ]]; then
             # Remove from SSH agent
-            ssh-add -d ~/.ssh/id_ed25519_$name 2>/dev/null || true
+            ssh-add -d ~/.ssh/id_ed25519_$name 2> /dev/null || true
             
             # Delete key files
             rm ~/.ssh/id_ed25519_$name
             rm ~/.ssh/id_ed25519_$name.pub
             
-            # Remove from SSH config
-            if [[ -f ~/.ssh/config ]]; then
-              sed -i '' "/Host github-$name/,/^$/d" ~/.ssh/config
+            # Remove SSH config
+            if [[ -f ~/.ssh/config.d/$name.conf ]]; then
+              rm ~/.ssh/config.d/$name.conf
             fi
             
             echo "✓ SSH key deleted: id_ed25519_$name"
-            echo "✓ Removed from SSH config"
+            echo "✓ Removed SSH config"
           else
             echo "✗ Deletion cancelled"
           fi
           ;;
           
-        "ls"|"list")
-          echo "» SSH keys:"
-          for key_file in ~/.ssh/id_ed25519_*; do
-            if [[ -f "$key_file" && ! "$key_file" =~ \.backup$ ]]; then
-              local name=$(basename "$key_file" | sed 's/id_ed25519_//')
-              local email=$(ssh-keygen -l -f "$key_file" 2>/dev/null | cut -d' ' -f3- || echo "unknown")
-              local loaded=""
-              if ssh-add -l 2>/dev/null | grep -q "$key_file"; then
-                loaded=" (loaded)"
-              fi
-              echo "  $name: $email$loaded"
-            fi
-          done
+        "show")
+          echo "» Public key for $name:"
+          
+          if [[ ! -f ~/.ssh/id_ed25519_$name.pub ]]; then
+            echo "⚠ SSH key id_ed25519_$name does not exist"
+            return 1
+          fi
+          
+          cat ~/.ssh/id_ed25519_$name.pub
           ;;
           
-        "help"|*)
-          echo "SSH Setup Manager"
-          echo ""
-          echo "Usage: ssh-setup <command> [name]"
-          echo ""
-          echo "Commands:"
-          echo "  create [name]  Create new SSH key (default: personal)"
-          echo "  renew [name]   Renew SSH key, keep backup (default: personal)"
-          echo "  delete [name]  Delete SSH key (default: personal)"
-          echo "  ls            List all SSH keys"
-          echo "  help          Show this help"
-          echo ""
-          echo "Examples:"
-          echo "  ssh-setup create personal"
-          echo "  ssh-setup renew work"
-          echo "  ssh-setup delete custom"
-          echo "  ssh-setup ls"
+        "test")
+          echo "» Testing SSH connection: $name"
+          
+          if [[ ! -f ~/.ssh/config.d/$name.conf ]]; then
+            echo "⚠ SSH config for $name does not exist"
+            return 1
+          fi
+          
+          # Extract host and port from config
+          local host=$(grep "HostName" ~/.ssh/config.d/$name.conf | awk '{print $2}')
+          local port=$(grep "Port" ~/.ssh/config.d/$name.conf | awk '{print $2}')
+          local user=$(grep "User" ~/.ssh/config.d/$name.conf | awk '{print $2}')
+          
+          echo "Testing connection to $host:$port as $user..."
+          
+          if ssh -o ConnectTimeout=10 -o BatchMode=yes $name exit 2>/dev/null; then
+            echo "✓ Connection successful"
+          else
+            echo "✗ Connection failed"
+            echo "→ Check if the key is added to the remote server"
+          fi
           ;;
+          
+        "ls"|"list")
+          echo "» SSH keys:"
+          local found=false
+          for key_file in $(find ~/.ssh -name "id_ed25519_*" 2>/dev/null); do
+            if [[ -f "$key_file" && ! "$key_file" =~ \.backup$ ]]; then
+              found=true
+              local key_name=$(basename "$key_file" | sed 's/id_ed25519_//')
+              local email=$(ssh-keygen -l -f "$key_file" 2>/dev/null | cut -d' ' -f3- || echo "unknown")
+              
+              # Get host info from config
+              local host_info=""
+              if [[ -f ~/.ssh/config.d/$key_name.conf ]]; then
+                local host=$(grep "HostName" ~/.ssh/config.d/$key_name.conf | awk '{print $2}')
+                local port=$(grep "Port" ~/.ssh/config.d/$key_name.conf | awk '{print $2}')
+                host_info=" ($host:$port)"
+              fi
+              
+              # Check if loaded in SSH agent
+              local loaded=""
+              if ssh-add -l 2> /dev/null | grep -q "$key_file"; then
+                loaded=" (loaded)"
+              fi
+              
+              echo "  $key_name: $email$host_info$loaded"
+            fi
+          done
+          if [[ "$found" == false ]]; then
+            echo "  No SSH keys found"
+          fi
+          ;;
+          
+                "help"|*)
+                  echo "Generic SSH Setup Manager"
+                  echo ""
+                  echo "Usage: ssh-setup <command> [name] [email] [host] [port] [user]"
+                  echo ""
+                  echo "Commands:"
+                  echo "  create <name> [email] <host> [port] <user>  Create new SSH key"
+                  echo "  renew [name]                               Renew SSH key, keep backup"
+                  echo "  delete [name]                              Delete SSH key"
+                  echo "  show [name]                                Show public key"
+                  echo "  test [name]                                Test SSH connection"
+                  echo "  ls                                        List all SSH keys"
+                  echo "  help                                      Show this help"
+                  echo ""
+                  echo "Examples:"
+                  echo "  ssh-setup create personal chintan@example.com github.com 443 git"
+                  echo "  ssh-setup create work work@company.com gitlab.com 22 git"
+                  echo "  ssh-setup create server admin@myserver.com 192.168.1.100 2222 admin"
+                  echo "  ssh-setup show personal"
+                  echo "  ssh-setup test personal"
+                  echo "  ssh-setup ls"
+                  echo ""
+                  echo "Required for create:"
+                  echo "  name: SSH key identifier (e.g., personal, work, server)"
+                  echo "  host: Target hostname (e.g., github.com, gitlab.com)"
+                  echo "  user: SSH username (e.g., git, admin, root)"
+                  echo ""
+                  echo "Optional:"
+                  echo "  email: Email for key comment (if not provided, no comment is added)"
+                  echo "  port: SSH port (default: 443)"
+                  ;;
       esac
     }
-    
-    # Export functions for zsh
-    export -f git-setup ssh-setup
   '';
 }

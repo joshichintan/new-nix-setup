@@ -42,7 +42,7 @@
         # ──────────────────────────────────────────────────────────────────
         # PATH Configuration
         # ──────────────────────────────────────────────────────────────────
-        export PATH="$HOME/.rd/bin:$PATH"
+        export PATH="${config.home.homeDirectory}/.rd/bin:$PATH"
         
         # ──────────────────────────────────────────────────────────────────
         # AWS SSO Token Check
@@ -54,13 +54,13 @@
           fi
           
           # Check if AWS config exists
-          if [[ ! -f "$HOME/.aws/config" ]]; then
+          if [[ ! -f "${config.home.homeDirectory}/.aws/config" ]]; then
             return 0
           fi
           
           # Get list of SSO sessions
           local sessions
-          sessions=$(grep '^\[sso-session ' "$HOME/.aws/config" 2>/dev/null | sed 's/^\[sso-session //' | sed 's/\]$//' | sort)
+          sessions=$(grep '^\[sso-session ' "${config.home.homeDirectory}/.aws/config" 2>/dev/null | sed 's/^\[sso-session //' | sed 's/\]$//' | sort)
           
           if [[ -z "$sessions" ]]; then
             return 0
