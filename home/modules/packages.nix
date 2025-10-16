@@ -19,7 +19,8 @@
     # go
     # jdk17  # Java Development Kit 17
 
-    # # Build tools
+    # Build tools
+    gradle  # Gradle build tool
     # cmake
     # ninja
     # pkg-config

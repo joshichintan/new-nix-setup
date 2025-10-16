@@ -1,8 +1,8 @@
 { config, pkgs, ... }:
 {
-  # Create shell script with core utilities only
-  home.file."${config.xdg.configHome}/zsh/shell-utils.sh".text = ''
-    #!/bin/bash
+    # Create shell script with core utilities only
+    home.file."${config.xdg.configHome}/zsh/shell-utils.sh".text = ''
+    #!/bin/zsh
     
     # =============================================================================
     # CORE UTILITIES
@@ -40,14 +40,6 @@
     reload() {
       source ~/.zshenv 2>/dev/null || true
       source "$ZDOTDIR/.zshrc" 2>/dev/null || true
-    }
-    
-    nix-gc() {
-      nix-collect-garbage
-    }
-    
-    nix-clean() {
-      nix-collect-garbage -d
     }
     
     # Functions are automatically available in zsh when sourced

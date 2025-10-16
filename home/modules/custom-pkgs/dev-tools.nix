@@ -2,7 +2,7 @@
 {
   # Create shell script with dev tools
   home.file."${config.xdg.configHome}/zsh/dev-tools.sh".text = ''
-    #!/bin/bash
+    #!/bin/zsh
     
     # =============================================================================
     # DEV TOOLS - GENERIC SSH KEY MANAGEMENT

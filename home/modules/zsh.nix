@@ -14,6 +14,7 @@
       saveNoDups = true;
       ignoreAllDups = true;
       findNoDups = true;
+      share = true;
     };
 
     historySubstringSearch = {
@@ -21,8 +22,11 @@
       searchUpKey = ["^k"];
       searchDownKey = ["^j"];
     };
-
-    autosuggestion.enable = true;
+    enableCompletion = true;
+    autosuggestion = {
+      enable = true;
+      strategy = [ "history" "completion" ];
+    };
     syntaxHighlighting.enable = true;
 
     initContent = let
@@ -42,7 +46,7 @@
         # ──────────────────────────────────────────────────────────────────
         # PATH Configuration
         # ──────────────────────────────────────────────────────────────────
-        export PATH="${config.home.homeDirectory}/.rd/bin:$PATH"
+        export PATH="$HOME/.rd/bin:$PATH"
         
         # ──────────────────────────────────────────────────────────────────
         # AWS SSO Token Check
@@ -54,13 +58,13 @@
           fi
           
           # Check if AWS config exists
-          if [[ ! -f "${config.home.homeDirectory}/.aws/config" ]]; then
+          if [[ ! -f "$HOME/.aws/config" ]]; then
             return 0
           fi
           
           # Get list of SSO sessions
           local sessions
-          sessions=$(grep '^\[sso-session ' "${config.home.homeDirectory}/.aws/config" 2>/dev/null | sed 's/^\[sso-session //' | sed 's/\]$//' | sort)
+          sessions=$(grep '^\[sso-session ' "$HOME/.aws/config" 2>/dev/null | sed 's/^\[sso-session //' | sed 's/\]$//' | sort)
           
           if [[ -z "$sessions" ]]; then
             return 0
@@ -127,21 +131,24 @@
           fi
         }
         add-zsh-hook precmd mise_precmd
-        
-        # ──────────────────────────────────────────────────────────────────
-        # Source Shell Utilities
-        # ──────────────────────────────────────────────────────────────────
+      '';
+
+      # ══════════════════════════════════════════════════════════════════════
+      # SECTION 3: Shell Utilities and Dev Tools
+      # ══════════════════════════════════════════════════════════════════════
+      shellUtils = lib.mkOrder 2000 ''
+        # Source the shell utilities
         if [[ -f "${config.xdg.configHome}/zsh/shell-utils.sh" ]]; then
           source "${config.xdg.configHome}/zsh/shell-utils.sh"
         fi
         
-        # Source Dev Tools
+        # Source the dev tools
         if [[ -f "${config.xdg.configHome}/zsh/dev-tools.sh" ]]; then
           source "${config.xdg.configHome}/zsh/dev-tools.sh"
         fi
       '';
     in
-      lib.mkMerge [ p10kPrompt functions ];
+      lib.mkMerge [ p10kPrompt functions shellUtils ];
 
     # Native Nix plugins (much faster than zplug)
     plugins = [
@@ -162,9 +169,6 @@
       }
     ];
 
-    # Enable  CLI completion
-    enableCompletion = true;
-
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
     };
@@ -184,12 +188,6 @@
       
       # Config editing aliases
       nix-config = "nvim $NIX_USER_CONFIG_PATH";
-      
-      # Core utilities (functions are available directly)
-      # hm, darwin, reload, nix-gc, nix-clean are available as functions
-      
-      # Dev tools (functions are available directly)
-      # git-setup and ssh-setup are available as functions
     };
   };
 }
