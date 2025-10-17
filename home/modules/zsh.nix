@@ -9,7 +9,7 @@
     enable = true;
     dotDir = "${config.xdg.configHome}/zsh"; # make sure xdg.enable = true; in home config for this to work.
     history = {
-      path = "$ZDOTDIR/.zsh_history";
+      path = "${config.programs.zsh.dotDir}/.zsh_history";
       append = true;
       saveNoDups = true;
       ignoreAllDups = true;
@@ -178,6 +178,12 @@
         if [[ -r "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
           source "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh"
         fi
+        
+        # enable this when p10k merges mise config 
+        # # Source Powerlevel10k configuration if it exists
+        # if [[ -r "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh" ]]; then
+        #   source "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"
+        # fi
       '';
       
       # ══════════════════════════════════════════════════════════════════════
@@ -264,16 +270,16 @@
 
     # Native Nix plugins (much faster than zplug)
     plugins = [
-      # {
-      #   name = "powerlevel10k";
-      #   src = pkgs.zsh-powerlevel10k;
-      #   file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
-      # }
-      # {
-      #   name = "powerlevel10k-config";
-      #   src = ../p10k-config;
-      #   file = ".p10k.zsh";
-      # }
+      {
+        name = "powerlevel10k";
+        src = pkgs.zsh-powerlevel10k;
+        file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
+      }
+      {
+        name = "powerlevel10k-config";
+        src = ../p10k-config;
+        file = ".p10k.zsh";
+      }
       {
         name = "fzf-tab";
         src = pkgs.zsh-fzf-tab;
@@ -283,6 +289,7 @@
 
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
+      # POWERLEVEL9K_CONFIG_FILE = "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"; # enable this when p10k merges mise config
     };
 
     shellAliases = {
