@@ -48,6 +48,7 @@
     # asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
     mise                    # mise version manager (https://mise.jdx.dev/)
     virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
+    aws_sso                 # AWS SSO login status
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
     goenv                   # go environment (https://github.com/syndbg/goenv)
@@ -1794,8 +1795,42 @@
   (( ! $+functions[p10k] )) || p10k reload
 }
 
-# Tell `p10k configure` which file it should overwrite.
-typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
+  # Tell `p10k configure` which file it should overwrite.
+  typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
 
-(( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
-'builtin' 'unset' 'p10k_config_opts'
+  # Custom AWS SSO Segment
+  prompt_aws_sso() {
+    # Only check if AWS CLI is available
+    if ! command -v aws >/dev/null 2>&1; then
+      return
+    fi
+    
+    local aws_cache_dir="$HOME/.aws/sso/cache"
+    local current_time=$(date +%s)
+    local valid_tokens=0
+    
+    if [[ -d "$aws_cache_dir" ]]; then
+      for cache_file in "$aws_cache_dir"/*.json; do
+        if [[ -f "$cache_file" ]]; then
+          local expires_at=$(jq -r '.expiresAt' "$cache_file" 2>/dev/null)
+          if [[ -n "$expires_at" && "$expires_at" != "null" ]]; then
+            local expires_time=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$expires_at" +%s 2>/dev/null || echo "0")
+            if [[ $current_time -lt $expires_time ]]; then
+              valid_tokens=$((valid_tokens + 1))
+            fi
+          fi
+        fi
+      done
+    fi
+    
+    if [[ $valid_tokens -gt 0 ]]; then
+      # Valid tokens - show AWS icon in green
+      p10k segment -f 2 -b 236 -i '󰸣' -t 'AWS'
+    else
+      # No valid tokens - show AWS icon in red
+      p10k segment -f 1 -b 236 -i '󰸣' -t 'AWS'
+    fi
+  }
+
+  (( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
+  'builtin' 'unset' 'p10k_config_opts'

@@ -187,11 +187,10 @@
           source "${config.xdg.cacheHome}/p10k-instant-prompt-''${(%):-%n}.zsh"
         fi
         
-        # enable this when p10k merges mise config 
-        # # Source Powerlevel10k configuration if it exists
-        # if [[ -r "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh" ]]; then
-        #   source "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"
-        # fi
+        # Source Powerlevel10k configuration if it exists
+        if [[ -r "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh" ]]; then
+          source "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"
+        fi
       '';
       
       # ══════════════════════════════════════════════════════════════════════

@@ -2,42 +2,6 @@
 
 {
   programs.zsh.initContent = ''
-    # AWS SSO Token Check Script
-    check_aws_sso_tokens() {
-      # Only check if AWS CLI is available
-      if ! command -v aws >/dev/null 2>&1; then
-        return 0
-      fi
-      
-      local P10K_INITIALIZATION_COMPLETE=false
-      if [[ -n "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
-        P10K_INITIALIZATION_COMPLETE=true
-      fi
-      
-      local aws_cache_dir="$HOME/.aws/sso/cache"
-      local current_time=$(date +%s)
-      local valid_tokens=0
-      
-      if [[ -d "$aws_cache_dir" ]]; then
-        for cache_file in "$aws_cache_dir"/*.json; do
-          if [[ -f "$cache_file" ]]; then
-            local expires_at=$(jq -r '.expiresAt' "$cache_file" 2>/dev/null)
-            if [[ -n "$expires_at" && "$expires_at" != "null" ]]; then
-              local expires_time=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$expires_at" +%s 2>/dev/null || echo "0")
-              if [[ $current_time -lt $expires_time ]]; then
-                valid_tokens=$((valid_tokens + 1))
-              fi
-            fi
-          fi
-        done
-      fi
-      
-      if [[ $valid_tokens -eq 0 && "$P10K_INITIALIZATION_COMPLETE" == true ]]; then
-        echo "  ⚠ AWS SSO tokens expired or not found. Run 'aws sso login' for each session."
-      fi
-    }
-    add-zsh-hook precmd check_aws_sso_tokens
-
     # AWS Context Script
     # Sets AWS_PROFILE and AWS_DEFAULT_REGION environment variables for current session
     aws-context() {
