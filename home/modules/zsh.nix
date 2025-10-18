@@ -1,5 +1,6 @@
 {
   config,
+  hostname,
   lib,
   pkgs,
   ...
@@ -9,7 +10,7 @@
     enable = true;
     dotDir = "${config.xdg.configHome}/zsh"; # make sure xdg.enable = true; in home config for this to work.
     history = {
-      path = "${config.programs.zsh.dotDir}/.zsh_history";
+      path = "${config.programs.zsh.dotDir}/history/.zsh_history";
       append = true;
       saveNoDups = true;
       ignoreAllDups = true;
@@ -289,6 +290,7 @@
 
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
+      ZSH_COMPDUMP = "${config.xdg.cacheHome}/zsh/.zcompdump-${hostname}";
       # POWERLEVEL9K_CONFIG_FILE = "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"; # enable this when p10k merges mise config
     };
 

@@ -79,6 +79,7 @@
           // {
             "${host.username}@${host.hostname}" = libx.mkHome {
               username = host.username;
+              hostname = host.hostname;
             };
           }
       ) {} (builtins.attrValues hosts);

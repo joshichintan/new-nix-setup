@@ -61,6 +61,7 @@
 
   mkHome = {
     username,
+    hostname,
     system ? "aarch64-darwin",
   }: let
     inherit (inputs.nixpkgs) lib;
@@ -68,7 +69,7 @@
   in
     inputs.home-manager.lib.homeManagerConfiguration {
       pkgs = unstablePkgs;
-      extraSpecialArgs = {inherit inputs unstablePkgs username;};
+      extraSpecialArgs = {inherit inputs unstablePkgs username hostname;};
       modules = [
         inputs.nvf.homeManagerModules.default
         ./../home/home.nix

@@ -4,6 +4,7 @@
   pkgs,
   lib,
   username,
+  hostname,
   unstablePkgs,
   ...
 }: {
@@ -37,6 +38,13 @@
 
   # Enable XDG base directories
   xdg.enable = true;
+
+  # Create necessary directories
+  home.activation = {
+    createZshCacheDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      $DRY_RUN_CMD mkdir -p ${config.xdg.cacheHome}/zsh
+    '';
+  };
 
   # Import all modular configurations
   imports = [
