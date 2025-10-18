@@ -184,5 +184,41 @@
         compdef _ssh-setup ssh-setup
       '';
     };
+
+    # AWS Context Completion Plugin
+    "${config.programs.zsh.dotDir}/custom/plugins/aws-context/aws-context.plugin.zsh" = {
+      text = ''
+        # AWS Context completion function
+        _aws-context() {
+          local context state line
+          typeset -A opt_args
+          
+          _arguments -C \
+            '1: :->profile' \
+            '2: :->region' \
+            && return 0
+          
+          case $state in
+            profile)
+              # Get AWS profiles for completion
+              local profiles
+              profiles=($(aws configure list-profiles 2>/dev/null | sort 2>/dev/null || true))
+              if [[ ''${#profiles[@]} -gt 0 ]]; then
+                _values 'profiles' $profiles
+              else
+                _message "No AWS profiles found. Run 'aws-mgr add sso' to create one."
+              fi
+              ;;
+            region)
+              # Complete region after profile
+              _values 'regions' 'us-east-1' 'us-west-2' 'us-west-1' 'eu-west-1' 'eu-central-1' 'ap-southeast-1' 'ap-northeast-1' 'us-east-2' 'us-west-2' 'eu-west-2' 'eu-west-3' 'eu-central-1' 'ap-south-1' 'ap-northeast-1' 'ap-northeast-2' 'ap-southeast-1' 'ap-southeast-2' 'ca-central-1' 'sa-east-1'
+              ;;
+          esac
+        }
+        
+        # Register completion function
+        compdef _aws-context aws-context
+      '';
+    };
   };
 }

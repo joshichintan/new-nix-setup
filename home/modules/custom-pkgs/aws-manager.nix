@@ -788,6 +788,10 @@ with open('$config_file', 'w') as f:
                     *)
                         echo "Usage: aws-mgr set <region|output> <value>"
                         echo ""
+                        echo "Commands:"
+                        echo "  region <region-name>       - Set default region in config"
+                        echo "  output <format>            - Set default output format in config"
+                        echo ""
                         echo "Examples:"
                         echo "  aws-mgr set region us-west-2"
                         echo "  aws-mgr set output table"

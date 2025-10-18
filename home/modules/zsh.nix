@@ -171,6 +171,7 @@
         "zsh-interactive-cd"
         
         # Custom completion plugins
+        "aws-context"
         "aws-manager"
         "ecr-manager" 
         "ssh-setup"
@@ -194,121 +195,14 @@
       '';
       
       # ══════════════════════════════════════════════════════════════════════
-      # SECTION 2: Environment Setup, Hooks, and Functions
+      # SECTION 2: Environment Setup and PATH Configuration
       # ══════════════════════════════════════════════════════════════════════
-      functions = lib.mkOrder 1000 ''
-        # ──────────────────────────────────────────────────────────────────
+      environment = lib.mkOrder 1000 ''
         # PATH Configuration
-        # ──────────────────────────────────────────────────────────────────
         export PATH="$HOME/.rd/bin:$PATH"
-        
-        # ──────────────────────────────────────────────────────────────────
-        # AWS SSO Token Check
-        # ──────────────────────────────────────────────────────────────────
-        check_aws_sso_tokens() {
-          # Only check if AWS CLI is available
-          if ! command -v aws >/dev/null 2>&1; then
-            return 0
-          fi
-          
-          local P10K_INITIALIZATION_COMPLETE=false
-          if [[ -n "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
-            P10K_INITIALIZATION_COMPLETE=true
-          fi
-          
-          local aws_cache_dir="$HOME/.aws/sso/cache"
-          local current_time=$(date +%s)
-          local valid_tokens=0
-          
-          if [[ -d "$aws_cache_dir" ]]; then
-            for cache_file in "$aws_cache_dir"/*.json; do
-              if [[ -f "$cache_file" ]]; then
-                local expires_at=$(jq -r '.expiresAt' "$cache_file" 2>/dev/null)
-                if [[ -n "$expires_at" && "$expires_at" != "null" ]]; then
-                  local expires_time=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$expires_at" +%s 2>/dev/null || echo "0")
-                  if [[ $current_time -lt $expires_time ]]; then
-                    valid_tokens=$((valid_tokens + 1))
-                  fi
-                fi
-              fi
-            done
-          fi
-          
-          if [[ $valid_tokens -eq 0 && "$P10K_INITIALIZATION_COMPLETE" == true ]]; then
-            echo "  ⚠ AWS SSO tokens expired or not found. Run 'aws sso login' for each session."
-          fi
-        }
-        add-zsh-hook precmd check_aws_sso_tokens
-        
-        # ──────────────────────────────────────────────────────────────────
-        # Mise Auto-activation and Installation
-        # ──────────────────────────────────────────────────────────────────
-        mise_precmd() {
-          # Skip first run to avoid p10k instant prompt interference
-          if [[ -z "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
-            return 0
-          fi
-          
-          # Install missing tools and display if installed
-          if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
-            echo "» Installing missing tools..."
-            mise install
-          fi
-        }
-        add-zsh-hook precmd mise_precmd
-
-        # ──────────────────────────────────────────────────────────────────
-        # Core Utilities
-        # ──────────────────────────────────────────────────────────────────
-        hm() {
-          USERNAME=$(whoami)
-          HOSTNAME=$(scutil --get LocalHostName | sed 's/\.local$//')
-          CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
-
-          echo "» Activating Home Manager..."
-          if nix --extra-experimental-features 'nix-command flakes' run \
-            "''${CONFIG_PATH}#homeConfigurations.\"''${USERNAME}@''${HOSTNAME}\".activationPackage"; then
-            # Hand off cleanup to background at the end
-            (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
-            echo "✓ Home Manager activated"
-          else
-            echo "✗ Home Manager activation failed"
-            return 1
-          fi
-        }
-        
-        darwin() {
-          HOSTNAME=$(scutil --get LocalHostName | sed 's/\.local$//')
-          CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
-          
-          echo "» Activating Darwin..."
-          if sudo nix --extra-experimental-features 'nix-command flakes' run \
-            'nix-darwin#darwin-rebuild' -- switch --flake "''${CONFIG_PATH}#''${HOSTNAME}"; then
-            # Hand off cleanup to background at the end
-            (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
-            echo "✓ Darwin activated"
-          else
-            echo "✗ Darwin activation failed"
-            return 1
-          fi
-        }
-        
-        reload() {
-          source ~/.zshenv 2>/dev/null || true
-          source "$ZDOTDIR/.zshrc" 2>/dev/null || true
-        }
-        
-        # Functions are automatically available in zsh when sourced
-      '';
-
-      # ══════════════════════════════════════════════════════════════════════
-      # SECTION 3: Shell Utilities and Dev Tools
-      # ══════════════════════════════════════════════════════════════════════
-      shellUtils = lib.mkOrder 2000 ''
-        
       '';
     in
-      lib.mkMerge [ p10kPrompt functions shellUtils ];
+      lib.mkMerge [ p10kPrompt environment ];
 
     # Native Nix plugins (much faster than zplug)
     plugins = [

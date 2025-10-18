@@ -14,5 +14,6 @@
     ./mise.nix
     ./completion-plugins.nix
     ./custom-pkgs
+    ./scripts
   ];
 }
