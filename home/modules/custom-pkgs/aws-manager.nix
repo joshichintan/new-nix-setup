@@ -59,32 +59,13 @@ let
         cp "$file" "$file.backup.$(date +%s)"
     }
     
-    # Prompt for SSO login when token is expired
+    # Prompt for SSO login when token is expired (non-interactive - returns error)
     prompt_sso_login() {
         local session_name="$1"
         
-        # Check if we're in an interactive terminal
-        if [[ ! -t 0 ]]; then
-            echo "  ✗ Non-interactive terminal. Cannot prompt for login." >&2
-            return 1
-        fi
-        
         echo "  ⚠ Session '$session_name' has expired token."
-        read -p "  Login now? (y/N): " confirm
-        
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            echo "  → Logging into SSO session: $session_name"
-            if aws sso login --sso-session "$session_name"; then
-                echo "  ✓ Login successful"
-                return 0
-            else
-                echo "  ✗ Login failed"
-                return 1
-            fi
-        else
-            echo "  → Skipping session (user declined login)"
-            return 1
-        fi
+        echo "  ✗ Non-interactive mode. Use 'aws sso login --sso-session $session_name' to login manually."
+        return 1
     }
     
     # Check if SSO token is valid
@@ -361,7 +342,12 @@ EOF
         
         # Process each session
         while IFS= read -r session; do
-            if has_valid_token "$session"; then
+            local details
+            details=$(get_sso_session_details "$session")
+            local start_url region
+            read -r start_url region <<< "$details"
+            
+            if has_valid_token "$start_url" "$region"; then
                 echo "✓ $session (syncing profiles)"
                 sync_session_profiles "$session"
             else
@@ -380,8 +366,8 @@ EOF
         
         # Trigger ECR validation after AWS sync
         echo "Validating ECR registries..."
-        if command -v validate_ecr_registries_after_aws_sync >/dev/null 2>&1; then
-            validate_ecr_registries_after_aws_sync
+        if command -v ecr-manager >/dev/null 2>&1; then
+            ecr-manager validate-after-sync
         else
             echo "ECR manager not available for validation"
         fi
@@ -399,186 +385,351 @@ EOF
         aws configure sso-session
     }
     
-    # Update SSO session
-    update_sso_session() {
-        if [[ ! -t 0 ]]; then
-            echo "Error: This function requires an interactive terminal."
-            echo "Please run: aws-manager"
-            return 1
+    
+    # Convert AWS config INI to JSON format using Python
+    convert_ini_to_json() {
+        local config_file="$1"
+        local json_file="$2"
+        
+        if [[ ! -f "$config_file" ]]; then
+            echo '{"default": {}, "sso_sessions": {}, "profiles": {}}' > "$json_file"
+            return 0
         fi
         
-        echo "Available SSO sessions:"
-        list_sso_sessions | nl -v1
-        echo ""
-        read -p "Enter session number to update: " session_num
-        
-        local session
-        session=$(list_sso_sessions | sed -n "''${session_num}p")
-        
-        if [[ -z "$session" ]]; then
-            echo "Invalid session number"
-            return 1
-        fi
-        
-        echo "Updating SSO session: $session"
-        echo ""
-        echo "This will reconfigure the SSO session. You'll need to:"
-        echo "1. Enter the same session name: $session"
-        echo "2. Provide updated SSO details"
-        echo ""
-        read -p "Continue? (y/N): " confirm
-        
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            # Remove the old session first
-            remove_sso_session_direct "$session"
-            echo ""
-            echo "Now configure the updated SSO session..."
-            aws configure sso-session
-        else
-            echo "Update cancelled"
-        fi
+        python3 -c "
+import configparser
+import json
+import sys
+
+config = configparser.ConfigParser()
+config.read('$config_file')
+
+result = {
+    'default': {},
+    'sso_sessions': {},
+    'profiles': {}
+}
+
+# Parse default section
+if 'default' in config:
+    result['default'] = dict(config['default'])
+
+# Parse SSO sessions
+for section in config.sections():
+    if section.startswith('sso-session '):
+        session_name = section[12:]  # Remove 'sso-session ' prefix
+        result['sso_sessions'][session_name] = dict(config[section])
+    elif section.startswith('profile '):
+        profile_name = section[8:]  # Remove 'profile ' prefix
+        result['profiles'][profile_name] = dict(config[section])
+
+print(json.dumps(result, indent=2))
+" > "$json_file"
     }
     
-    # Remove SSO session
-    remove_sso_session_direct() {
+    # Convert JSON back to AWS config INI format using Python
+    convert_json_to_ini() {
+        local json_file="$1"
+        local config_file="$2"
+        
+        python3 -c "
+import json
+import sys
+
+with open('$json_file', 'r') as f:
+    data = json.load(f)
+
+with open('$config_file', 'w') as f:
+    # Write default section
+    if data.get('default'):
+        f.write('[default]\n')
+        for key, value in data['default'].items():
+            f.write(f'{key} = {value}\n')
+        f.write('\n')
+    
+    # Write SSO sessions
+    for session_name, session_data in data.get('sso_sessions', {}).items():
+        f.write(f'[sso-session {session_name}]\n')
+        for key, value in session_data.items():
+            f.write(f'{key} = {value}\n')
+        f.write('\n')
+    
+    # Write profiles
+    for profile_name, profile_data in data.get('profiles', {}).items():
+        f.write(f'[profile {profile_name}]\n')
+        for key, value in profile_data.items():
+            f.write(f'{key} = {value}\n')
+        f.write('\n')
+"
+    }
+    
+    # Remove profiles associated with an SSO session (but keep the SSO session)
+    remove_associated_profiles() {
         local session_name="$1"
-        local temp_config
-        temp_config=$(mktemp)
+        local temp_dir
+        temp_dir=$(mktemp -d)
+        local json_file="$temp_dir/config.json"
         
         # Create backup
         create_backup "$aws_config"
         
-        # Remove SSO session and associated profiles
-        awk -v session="$session_name" '
-        BEGIN { in_session = 0; in_profile = 0; skip_profile = 0; profile_name = "" }
-        /^\[sso-session / {
-            if ($0 == "[sso-session " session "]") {
-                in_session = 1
-                skip_profile = 0
-                next
-            }
-        }
-        /^\[profile / {
-            in_profile = 1
-            in_session = 0
-            skip_profile = 0
-            profile_name = $0
-            next
-        }
-        /^\[/ {
-            in_session = 0
-            in_profile = 0
-            skip_profile = 0
-            profile_name = ""
-        }
-        in_session {
-            next
-        }
-        in_profile && /sso_session.*=.*'$session_name'/ {
-            skip_profile = 1
-            next
-        }
-        skip_profile {
-            next
-        }
-        { print }
-        ' "$aws_config" > "$temp_config"
+        # Convert INI to JSON
+        convert_ini_to_json "$aws_config" "$json_file"
         
-        mv "$temp_config" "$aws_config"
-        echo "Removed SSO session: $session_name"
+        # Remove profiles that reference this SSO session
+        jq --arg session "$session_name" '
+        .profiles = (.profiles | to_entries | map(select(.value.sso_session != $session)) | from_entries)
+        ' "$json_file" > "$json_file.tmp"
+        
+        # Convert back to INI
+        convert_json_to_ini "$json_file.tmp" "$aws_config"
+        
+        # Cleanup
+        rm -rf "$temp_dir"
+        echo "✓ Removed profiles associated with SSO session: $session_name"
     }
     
-    # Main AWS Manager Menu
+    # Remove SSO session and all associated profiles
+    remove_sso_session_direct() {
+        local session_name="$1"
+        local temp_dir
+        temp_dir=$(mktemp -d)
+        local json_file="$temp_dir/config.json"
+        
+        # Create backup
+        create_backup "$aws_config"
+        
+        # Convert INI to JSON
+        convert_ini_to_json "$aws_config" "$json_file"
+        
+        # Remove SSO session and associated profiles
+        jq --arg session "$session_name" '
+        # Remove the SSO session
+        del(.sso_sessions[$session]) |
+        # Remove profiles that reference this SSO session
+        .profiles = (.profiles | to_entries | map(select(.value.sso_session != $session)) | from_entries)
+        ' "$json_file" > "$json_file.tmp"
+        
+        # Convert back to INI
+        convert_json_to_ini "$json_file.tmp" "$aws_config"
+        
+        # Cleanup
+        rm -rf "$temp_dir"
+        echo "✓ Removed SSO session: $session_name"
+    }
+    
+    # Show help
+    show_help() {
+        echo "AWS Profile Manager"
+        echo ""
+        echo "Usage: aws-mgr <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  ls sso                    List SSO sessions"
+        echo "  add sso                   Add new SSO session"
+        echo "  update sso <session>      Update SSO session"
+        echo "  rm sso <session>          Remove SSO session"
+        echo "  ls profiles              List AWS profiles"
+        echo "  test profiles             Test AWS profiles"
+        echo "  sync                     Sync profiles from SSO"
+        echo "  status                   Show current status"
+        echo "  help                     Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  aws-mgr ls sso"
+        echo "  aws-mgr add sso"
+        echo "  aws-mgr update sso my-company-sso"
+        echo "  aws-mgr rm sso my-company-sso"
+        echo "  aws-mgr ls profiles"
+        echo "  aws-mgr test profiles"
+        echo "  aws-mgr sync"
+        echo "  aws-mgr status"
+    }
+    
+    # Show status
+    show_status() {
+        echo "AWS Profile Manager Status"
+        echo "========================="
+        echo ""
+        
+        echo "SSO Sessions:"
+        local sessions
+        sessions=$(list_sso_sessions)
+        if [[ -n "$sessions" ]]; then
+            echo "$sessions" | while read -r session; do
+                if [[ -n "$session" ]]; then
+                    local details
+                    details=$(get_sso_session_details "$session")
+                    local start_url region
+                    read -r start_url region <<< "$details"
+                    
+                    if has_valid_token "$start_url" "$region"; then
+                        echo "  ✓ $session (valid)"
+                    else
+                        echo "  ✗ $session (expired)"
+                    fi
+                fi
+            done
+        else
+            echo "  No SSO sessions found"
+        fi
+        
+        echo ""
+        echo "AWS Profiles:"
+        local profiles
+        profiles=$(list_aws_profiles)
+        if [[ -n "$profiles" ]]; then
+            echo "$profiles" | while read -r profile; do
+                if [[ -n "$profile" ]]; then
+                    echo "  $profile"
+                fi
+            done
+        else
+            echo "  No AWS profiles found"
+        fi
+    }
+    
+    # Main AWS Manager CLI
     aws_manager() {
-        while true; do
-            echo ""
-            echo "AWS Profile Manager"
-            echo "=================="
-            echo "1) List SSO sessions"
-            echo "2) Add SSO session"
-            echo "3) Update SSO session"
-            echo "4) Remove SSO session"
-            echo "5) List profiles"
-            echo "6) Test profiles"
-            echo "7) Sync profiles"
-            echo "8) Exit"
-            echo ""
-            read -p "Select option (1-8): " choice
-            
-            case $choice in
-                1)
-                    echo "SSO Sessions:"
-                    list_sso_sessions | while read -r session; do
-                        if [[ -n "$session" ]]; then
-                            local details
-                            details=$(get_sso_session_details "$session")
-                            local start_url region
-                            read -r start_url region <<< "$details"
-                            
-                            if has_valid_token "$start_url" "$region"; then
-                                echo "✓ $session (valid)"
-                            else
-                                echo "✗ $session (expired)"
+        local command="''${1:-help}"
+        
+        case "$command" in
+            "ls")
+                local object="''${2:-}"
+                case "$object" in
+                    "sso")
+                        echo "SSO Sessions:"
+                        list_sso_sessions | while read -r session; do
+                            if [[ -n "$session" ]]; then
+                                local details
+                                details=$(get_sso_session_details "$session")
+                                local start_url region
+                                read -r start_url region <<< "$details"
+                                
+                                if has_valid_token "$start_url" "$region"; then
+                                    echo "✓ $session (valid)"
+                                else
+                                    echo "✗ $session (expired)"
+                                fi
                             fi
+                        done
+                        ;;
+                    "profiles")
+                        echo "AWS Profiles:"
+                        list_aws_profiles | while read -r profile; do
+                            if [[ -n "$profile" ]]; then
+                                echo "  $profile"
+                            fi
+                        done
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr ls <sso|profiles>"
+                        ;;
+                esac
+                ;;
+            "add")
+                local object="''${2:-}"
+                case "$object" in
+                    "sso")
+                        add_sso_session
+                        echo ""
+                        echo "Syncing profiles after adding SSO session..."
+                        sync_profiles
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr add <sso>"
+                        ;;
+                esac
+                ;;
+            "update")
+                local object="''${2:-}"
+                case "$object" in
+                    "sso")
+                        local session="''${3:-}"
+                        if [[ -n "$session" ]]; then
+                            echo "Updating SSO session: $session"
+                            echo ""
+                            echo "This will reconfigure the SSO session with the same name: $session"
+                            echo "You can update: start URL, region, registration scopes"
+                            echo ""
+                            
+                            # Remove associated profiles but keep the SSO session
+                            remove_associated_profiles "$session"
+                            echo ""
+                            echo "Launching AWS CLI wizard..."
+                            echo "Session name will be automatically supplied: $session"
+                            echo "You can then update: start URL, region, registration scopes"
+                            echo ""
+                            
+                            # Use expect to automatically provide the session name
+                            expect -c "
+                                set timeout 30
+                                spawn aws configure sso-session
+                                expect \"SSO session name:\"
+                                send \"$session\r\"
+                                interact
+                            " || {
+                                echo "Note: expect failed, launching manual wizard..."
+                                echo "IMPORTANT: Enter the same session name: $session"
+                                aws configure sso-session
+                            }
+                            echo ""
+                            echo "Syncing profiles after updating SSO session..."
+                            sync_profiles
+                        else
+                            echo "Usage: aws-mgr update sso <session-name>"
                         fi
-                    done
-                    ;;
-                2)
-                    add_sso_session
-                    echo ""
-                    echo "Syncing profiles after adding SSO session..."
-                    sync_profiles
-                    ;;
-                3)
-                    update_sso_session
-                    echo ""
-                    echo "Syncing profiles after updating SSO session..."
-                    sync_profiles
-                    ;;
-                4)
-                    echo "Available SSO sessions:"
-                    list_sso_sessions | nl -v1
-                    echo ""
-                    read -p "Enter session number to remove: " session_num
-                    local session
-                    session=$(list_sso_sessions | sed -n "''${session_num}p")
-                    if [[ -n "$session" ]]; then
-                        read -p "Remove session '$session'? (y/N): " confirm
-                        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr update <sso> <session-name>"
+                        ;;
+                esac
+                ;;
+            "rm")
+                local object="''${2:-}"
+                case "$object" in
+                    "sso")
+                        local session="''${3:-}"
+                        if [[ -n "$session" ]]; then
                             remove_sso_session_direct "$session"
                             echo ""
                             echo "Syncing profiles after removing SSO session..."
                             sync_profiles
+                        else
+                            echo "Usage: aws-mgr rm sso <session-name>"
                         fi
-                    fi
-                    ;;
-                5)
-                    echo "AWS Profiles:"
-                    list_aws_profiles | while read -r profile; do
-                        if [[ -n "$profile" ]]; then
-                            echo "  $profile"
-                        fi
-                    done
-                    ;;
-                6)
-                    echo "Testing profiles..."
-                    list_aws_profiles | while read -r profile; do
-                        if [[ -n "$profile" ]]; then
-                            test_profile "$profile"
-                        fi
-                    done
-                    ;;
-                7)
-                    sync_profiles
-                    ;;
-                8)
-                    break
-                    ;;
-                *)
-                    echo "Invalid option"
-                    ;;
-            esac
-        done
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr rm <sso> <session-name>"
+                        ;;
+                esac
+                ;;
+            "test")
+                local object="''${2:-}"
+                case "$object" in
+                    "profiles")
+                        echo "Testing profiles..."
+                        list_aws_profiles | while read -r profile; do
+                            if [[ -n "$profile" ]]; then
+                                test_profile "$profile"
+                            fi
+                        done
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr test <profiles>"
+                        ;;
+                esac
+                ;;
+            "sync")
+                sync_profiles
+                ;;
+            "status")
+                show_status
+                ;;
+            "help"|*)
+                show_help
+                ;;
+        esac
     }
     
     # Execute the manager

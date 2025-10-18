@@ -57,8 +57,8 @@ let
         fi
     }
     
-    # Create SSH key
-    create_key() {
+    # Add SSH key
+    add_key() {
         local name="''${1:-}"
         local email="''${2:-}"
         local host="''${3:-}"
@@ -75,7 +75,7 @@ let
         # Check if key already exists
         if [[ -f "$HOME/.ssh/id_ed25519_$name" ]]; then
             log_warning "SSH key id_ed25519_$name already exists"
-            echo "Use 'ssh-setup renew $name' to regenerate or 'ssh-setup delete $name' to remove"
+            echo "Use 'ssh-setup update $name' to regenerate or 'ssh-setup delete $name' to remove"
             return 1
         fi
         
@@ -115,17 +115,17 @@ EOF
         echo "→ Usage: ssh -T $name"
     }
     
-    # Renew SSH key
-    renew_key() {
+    # Update SSH key
+    update_key() {
         local name="''${1:-}"
         
-        log_info "Renewing SSH key: $name"
+        log_info "Updating SSH key: $name"
         
         validate_name "$name" || return 1
         
         if [[ ! -f "$HOME/.ssh/id_ed25519_$name" ]]; then
             log_warning "SSH key id_ed25519_$name does not exist"
-            echo "Use 'ssh-setup create $name' to create it"
+            echo "Use 'ssh-setup add $name' to create it"
             return 1
         fi
         
@@ -147,7 +147,7 @@ EOF
         # Add to SSH agent
         ssh-add "$HOME/.ssh/id_ed25519_$name" 2>/dev/null || true
         
-        log_success "SSH key renewed: id_ed25519_$name"
+        log_success "SSH key updated: id_ed25519_$name"
         log_success "Backup saved: id_ed25519_$name.backup"
         echo ""
         echo "→ New public key:"
@@ -189,8 +189,8 @@ EOF
         fi
     }
     
-    # Show public key
-    show_key() {
+    # List SSH key
+    list_key() {
         local name="''${1:-}"
         
         log_info "Public key for $name:"
@@ -272,23 +272,23 @@ EOF
         echo "Usage: ssh-setup <command> [name] [email] [host] [port] [user]"
         echo ""
         echo "Commands:"
-        echo "  create <name> [email] <host> [port] <user>  Create new SSH key"
-        echo "  renew [name]                               Renew SSH key, keep backup"
+        echo "  add <name> [email] <host> [port] <user>     Add new SSH key"
+        echo "  update [name]                              Update SSH key, keep backup"
         echo "  delete [name]                              Delete SSH key"
-        echo "  show [name]                                Show public key"
+        echo "  ls [name]                                  List public key"
         echo "  test [name]                                Test SSH connection"
         echo "  ls                                        List all SSH keys"
         echo "  help                                      Show this help"
         echo ""
         echo "Examples:"
-        echo "  ssh-setup create personal chintan@example.com github.com 443 git"
-        echo "  ssh-setup create work work@company.com gitlab.com 22 git"
-        echo "  ssh-setup create server admin@myserver.com 192.168.1.100 2222 admin"
-        echo "  ssh-setup show personal"
+        echo "  ssh-setup add personal chintan@example.com github.com 443 git"
+        echo "  ssh-setup add work work@company.com gitlab.com 22 git"
+        echo "  ssh-setup add server admin@myserver.com 192.168.1.100 2222 admin"
+        echo "  ssh-setup ls personal"
         echo "  ssh-setup test personal"
         echo "  ssh-setup ls"
         echo ""
-        echo "Required for create:"
+        echo "Required for add:"
         echo "  name: SSH key identifier (e.g., personal, work, server)"
         echo "  host: Target hostname (e.g., github.com, gitlab.com)"
         echo "  user: SSH username (e.g., git, admin, root)"
@@ -303,23 +303,24 @@ EOF
         local command="''${1:-help}"
         
         case "$command" in
-            "create")
-                create_key "''${2:-}" "''${3:-}" "''${4:-}" "''${5:-}" "''${6:-}"
+            "add")
+                add_key "''${2:-}" "''${3:-}" "''${4:-}" "''${5:-}" "''${6:-}"
                 ;;
-            "renew")
-                renew_key "''${2:-}"
+            "update")
+                update_key "''${2:-}"
                 ;;
             "delete")
                 delete_key "''${2:-}"
                 ;;
-            "show")
-                show_key "''${2:-}"
+            "ls")
+                if [[ -n "''${2:-}" ]]; then
+                    list_key "''${2:-}"
+                else
+                    list_keys
+                fi
                 ;;
             "test")
                 test_connection "''${2:-}"
-                ;;
-            "ls"|"list")
-                list_keys
                 ;;
             "help"|*)
                 show_help

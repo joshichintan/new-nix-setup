@@ -12,6 +12,7 @@
     ./ssh.nix
     ./direnv.nix
     ./mise.nix
+    ./completion-plugins.nix
     ./custom-pkgs
   ];
 }

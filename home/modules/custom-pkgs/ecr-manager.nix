@@ -55,49 +55,44 @@ let
         grep '^\[profile ' "$HOME/.aws/config" | sed 's/^\[profile //' | sed 's/\]$//' | sort
     }
     
-    # Select AWS profile interactively
-    select_aws_profile() {
-        local current_profile="$1"
+    # Get AWS profile by name or number
+    get_aws_profile() {
+        local profile_input="$1"
         local profiles
         profiles=$(list_aws_profiles)
         
         if [[ -z "$profiles" ]]; then
-            echo "No AWS profiles found. Please configure AWS profiles first."
+            echo "No AWS profiles found. Run 'aws configure' to create profiles." >&2
             return 1
         fi
         
-        echo "Available AWS profiles:"
-        echo "$profiles" | nl -v1
-        echo ""
-        
-        if [[ -n "$current_profile" ]]; then
-            read -p "Select AWS profile [$current_profile]: " profile_num
-        else
-            read -p "Select AWS profile: " profile_num
-        fi
-        
-        if [[ -z "$profile_num" && -n "$current_profile" ]]; then
-            echo "$current_profile"
-            return 0
-        fi
-        
-        if [[ "$profile_num" =~ ^[0-9]+$ ]]; then
+        # If input is a number, get profile by index
+        if [[ "$profile_input" =~ ^[0-9]+$ ]]; then
             local selected_profile
-            selected_profile=$(echo "$profiles" | sed -n "''${profile_num}p")
+            selected_profile=$(echo "$profiles" | sed -n "''${profile_input}p")
             if [[ -n "$selected_profile" ]]; then
                 echo "$selected_profile"
                 return 0
+            else
+                echo "Invalid profile number" >&2
+                return 1
             fi
         fi
         
-        echo "Invalid selection" >&2
-        return 1
+        # If input is a profile name, validate it exists
+        if echo "$profiles" | grep -q "^''${profile_input}$"; then
+            echo "$profile_input"
+            return 0
+        else
+            echo "Profile '$profile_input' not found" >&2
+            return 1
+        fi
     }
     
-    # Validate ECR registry
+    # Validate ECR registry (3-step validation)
     validate_ecr_registry() {
         local registry="$1"
-        local profile="$2"
+        local profile="''${2:-}"
         
         if [[ -z "$registry" ]]; then
             echo "✗ Registry URL is required"
@@ -114,34 +109,41 @@ let
         fi
         
         echo "Validating registry: $registry with profile: $profile"
+        echo ""
         
-        # Check if AWS profile exists
+        # Step 1: Check if AWS profile exists
+        echo "1. Checking AWS profile..."
         if ! aws configure list-profiles | grep -q "^$profile$"; then
-            echo "✗ AWS profile '$profile' does not exist"
+            echo "   ✗ AWS profile '$profile' does not exist"
             return 1
         fi
+        echo "   ✓ AWS profile exists"
         
-        # Check if profile can authenticate
+        # Step 2: Check if profile can authenticate
+        echo "2. Validating AWS authentication..."
         if ! aws sts get-caller-identity --profile "$profile" >/dev/null 2>&1; then
-            echo "✗ AWS profile '$profile' authentication failed"
-            echo "  Please run: aws sso login --profile $profile"
+            echo "   ✗ AWS profile '$profile' authentication failed"
+            echo "   Please run: aws sso login --profile $profile"
             return 1
         fi
+        echo "   ✓ AWS authentication successful"
         
-        # Check if ECR access is available
+        # Step 3: Check if ECR access is available
+        echo "3. Checking ECR permissions..."
         local region
         region=$(echo "$registry" | cut -d'.' -f4)
         if [[ -z "$region" ]]; then
-            echo "✗ Could not extract region from registry URL: $registry"
+            echo "   ✗ Could not extract region from registry URL: $registry"
             return 1
         fi
         
         if ! aws ecr describe-repositories --profile "$profile" --region "$region" >/dev/null 2>&1; then
-            echo "✗ ECR access denied for profile '$profile' in region '$region'"
+            echo "   ✗ ECR access denied for profile '$profile' in region '$region'"
             return 1
         fi
-        
-        echo "✓ Registry validation successful"
+        echo "   ✓ ECR permissions verified"
+        echo ""
+        echo "✓ Registry validation completed successfully"
         return 0
     }
     
@@ -226,184 +228,9 @@ let
         echo "Removed ECR registry: $registry"
     }
     
-    # Add ECR registry interactively
-    add_ecr_registry_interactive() {
-        echo "Add ECR Registry"
-        echo "================"
-        echo ""
-        
-        read -p "Enter registry URL: " registry
-        if [[ -z "$registry" ]]; then
-            echo "Registry URL is required"
-            return 1
-        fi
-        
-        # Sanitize and validate input
-        registry=$(sanitize_input "$registry")
-        if ! validate_registry_url "$registry"; then
-            return 1
-        fi
-        
-        # Add registry with null profile initially
-        add_ecr_registry_with_null_profile "$registry"
-        
-        echo ""
-        echo "Registry added. Profile will be assigned during next AWS sync."
-        echo "Or you can assign a profile now:"
-        echo "1) Assign profile now"
-        echo "2) Skip (assign during AWS sync)"
-        echo ""
-        
-        read -p "Select option (1-2): " choice
-        case $choice in
-            1)
-                assign_profile_to_registry "$registry"
-                ;;
-            2)
-                echo "Profile will be assigned during next AWS sync"
-                ;;
-            *)
-                echo "Invalid option, profile will be assigned during next AWS sync"
-                ;;
-        esac
-    }
     
-    # Update ECR registry interactively
-    update_ecr_registry_interactive() {
-        echo "Update ECR Registry"
-        echo "==================="
-        echo ""
-        
-        # List existing registries
-        local registries
-        registries=$(list_ecr_registries)
-        
-        if [[ -z "$registries" ]]; then
-            echo "No ECR registries found"
-            return 0
-        fi
-        
-        echo "Available registries:"
-        echo "$registries" | nl -v1
-        echo ""
-        
-        read -p "Enter registry number to update: " reg_num
-        if [[ ! "$reg_num" =~ ^[0-9]+$ ]]; then
-            echo "Invalid registry number"
-            return 1
-        fi
-        
-        local registry
-        registry=$(echo "$registries" | sed -n "''${reg_num}p")
-        if [[ -z "$registry" ]]; then
-            echo "Invalid registry selection"
-            return 1
-        fi
-        
-        local current_profile
-        current_profile=$(get_ecr_registry_profile "$registry")
-        
-        echo "Updating registry: $registry"
-        echo "Current profile: $current_profile"
-        echo ""
-        
-        # Select new AWS profile
-        local new_profile
-        new_profile=$(select_aws_profile "$current_profile")
-        if [[ $? -ne 0 ]]; then
-            return 1
-        fi
-        
-        # Update the registry profile
-        update_ecr_registry_profile "$registry" "$new_profile"
-        echo "Updated ECR registry: $registry -> $new_profile"
-        
-        # Validate the updated registry
-        echo ""
-        echo "Validating updated registry..."
-        validate_ecr_registry "$registry" "$new_profile"
-    }
     
-    # Validate ECR registry interactively
-    validate_ecr_registry_interactive() {
-        echo "Validate ECR Registry"
-        echo "====================="
-        echo ""
-        
-        # List existing registries
-        local registries
-        registries=$(list_ecr_registries)
-        
-        if [[ -z "$registries" ]]; then
-            echo "No ECR registries found"
-            return 0
-        fi
-        
-        echo "Available registries:"
-        echo "$registries" | nl -v1
-        echo ""
-        
-        read -p "Enter registry number to validate: " reg_num
-        if [[ ! "$reg_num" =~ ^[0-9]+$ ]]; then
-            echo "Invalid registry number"
-            return 1
-        fi
-        
-        local registry
-        registry=$(echo "$registries" | sed -n "''${reg_num}p")
-        if [[ -z "$registry" ]]; then
-            echo "Invalid registry selection"
-            return 1
-        fi
-        
-        validate_ecr_registry "$registry"
-    }
     
-    # Test ECR registry interactively
-    test_ecr_registry_interactive() {
-        echo "Test ECR Registry"
-        echo "================="
-        echo ""
-        
-        # List existing registries
-        local registries
-        registries=$(list_ecr_registries)
-        
-        if [[ -z "$registries" ]]; then
-            echo "No ECR registries found"
-            return 0
-        fi
-        
-        echo "Available registries:"
-        echo "$registries" | nl -v1
-        echo ""
-        
-        read -p "Enter registry number to test: " reg_num
-        if [[ ! "$reg_num" =~ ^[0-9]+$ ]]; then
-            echo "Invalid registry number"
-            return 1
-        fi
-        
-        local registry
-        registry=$(echo "$registries" | sed -n "''${reg_num}p")
-        if [[ -z "$registry" ]]; then
-            echo "Invalid registry selection"
-            return 1
-        fi
-        
-        local profile
-        profile=$(get_ecr_registry_profile "$registry")
-        if [[ -n "$profile" ]]; then
-            echo "Testing registry: $registry with profile: $profile"
-            if docker pull "$registry/hello-world:latest" 2>/dev/null; then
-                echo "✓ Registry test successful"
-            else
-                echo "✗ Registry test failed"
-            fi
-        else
-            echo "No profile configured for registry: $registry"
-        fi
-    }
     
     # ECR validation after AWS sync (called from aws-manager)
     validate_ecr_registries_after_aws_sync() {
@@ -475,148 +302,175 @@ let
         fi
     }
     
-    # Assign profile to new registry
+    # Assign profile to registry (non-interactive)
     assign_profile_to_registry() {
         local registry="$1"
-        local profile
-        profile=$(select_aws_profile)
+        local profile="$2"
         
-        if [[ $? -eq 0 && -n "$profile" ]]; then
-            update_ecr_registry_profile "$registry" "$profile"
-            if validate_ecr_registry "$registry" "$profile"; then
-                echo "  ✓ Profile assigned and validated: $profile"
-                return 0
-            else
-                echo "  ✗ Profile assignment failed validation"
-                return 1
-            fi
+        if [[ -z "$profile" ]]; then
+            echo "Profile parameter is required" >&2
+            return 1
+        fi
+        
+        # Validate profile exists
+        if ! echo "$(list_aws_profiles)" | grep -q "^''${profile}$"; then
+            echo "Profile '$profile' not found" >&2
+            return 1
+        fi
+        
+        update_ecr_registry_profile "$registry" "$profile"
+        if validate_ecr_registry "$registry" "$profile"; then
+            echo "  ✓ Profile assigned and validated: $profile"
+            return 0
         else
-            echo "  ✗ No profile selected"
+            echo "  ✗ Profile assignment failed validation"
             return 1
         fi
     }
     
-    # Handle missing profile
+    # Handle missing profile (non-interactive - removes registry)
     handle_missing_profile() {
         local registry="$1"
         local old_profile="$2"
         
-        echo "  Profile '$old_profile' is missing. What would you like to do?"
-        echo "  1) Assign new profile"
-        echo "  2) Remove registry"
-        echo ""
-        
-        read -p "Select option (1-2): " choice
-        case $choice in
-            1)
-                assign_profile_to_registry "$registry"
-                ;;
-            2)
-                remove_ecr_registry "$registry"
-                        echo "  ✓ Registry removed"
-                return 0
-                ;;
-            *)
-                        echo "  ✗ Invalid option"
-                return 1
-                ;;
-        esac
+        echo "  Profile '$old_profile' is missing. Removing registry: $registry"
+        remove_ecr_registry "$registry"
+        echo "  ✓ Registry removed"
+        return 0
     }
     
-    # Handle invalid profile
+    # Handle invalid profile (non-interactive - removes registry)
     handle_invalid_profile() {
         local registry="$1"
         local old_profile="$2"
         
-        echo "  Profile '$old_profile' is invalid. What would you like to do?"
-        echo "  1) Update profile"
-        echo "  2) Remove registry"
-        echo ""
-        
-        read -p "Select option (1-2): " choice
-        case $choice in
-            1)
-                assign_profile_to_registry "$registry"
-                ;;
-            2)
-                remove_ecr_registry "$registry"
-                        echo "  ✓ Registry removed"
-                return 0
-                ;;
-            *)
-                        echo "  ✗ Invalid option"
-                return 1
-                ;;
-        esac
+        echo "  Profile '$old_profile' is invalid. Removing registry: $registry"
+        remove_ecr_registry "$registry"
+        echo "  ✓ Registry removed"
+        return 0
     }
     
-    # Main ECR Manager Menu
+    # Show help
+    show_help() {
+        echo "ECR Registry Manager"
+        echo ""
+        echo "Usage: ecr-mgr <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  ls                        List ECR registries"
+        echo "  add <url> <profile>        Add new ECR registry with AWS profile"
+        echo "  update <url> <profile>     Update ECR registry profile"
+        echo "  rm <url>                   Remove ECR registry"
+        echo "  validate <url>             Validate ECR registry (auth + permissions)"
+        echo "  help                      Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  ecr-mgr ls"
+        echo "  ecr-mgr add 123456789012.dkr.ecr.us-east-1.amazonaws.com my-aws-profile"
+        echo "  ecr-mgr update 123456789012.dkr.ecr.us-east-1.amazonaws.com my-aws-profile"
+        echo "  ecr-mgr rm 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+        echo "  ecr-mgr validate 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+    }
+    
+    
+    # Main ECR Manager CLI
     ecr_manager() {
-        while true; do
-            echo ""
-            echo "ECR Registry Manager"
-            echo "==================="
-            echo "1) List registries"
-            echo "2) Add registry"
-            echo "3) Update registry"
-            echo "4) Remove registry"
-            echo "5) Validate registry"
-            echo "6) Test registry"
-            echo "7) Exit"
-            echo ""
-            read -p "Select option (1-7): " choice
-            
-            case $choice in
-                1)
-                    echo "ECR Registries:"
-                    list_ecr_registries | while read -r registry; do
-                        if [[ -n "$registry" ]]; then
-                            local profile
-                            profile=$(get_ecr_registry_profile "$registry")
-                            echo "  $registry -> $profile"
-                        fi
-                    done
-                    ;;
-                2)
-                    add_ecr_registry_interactive
+        local command="''${1:-help}"
+        
+        case "$command" in
+            "ls")
+                echo "ECR Registries:"
+                list_ecr_registries | while read -r registry; do
+                    if [[ -n "$registry" ]]; then
+                        local profile
+                        profile=$(get_ecr_registry_profile "$registry")
+                        echo "  $registry -> $profile"
+                    fi
+                done
+                ;;
+            "add")
+                local registry="''${2:-}"
+                local profile="''${3:-}"
+                if [[ -n "$registry" && -n "$profile" ]]; then
+                    # Sanitize and validate input
+                    registry=$(sanitize_input "$registry")
+                    if ! validate_registry_url "$registry"; then
+                        return 1
+                    fi
+                    
+                    # Validate profile exists
+                    if ! echo "$(list_aws_profiles)" | grep -q "^''${profile}$"; then
+                        echo "Profile '$profile' not found" >&2
+                        echo "Available profiles:" >&2
+                        list_aws_profiles | sed 's/^/  /' >&2
+                        return 1
+                    fi
+                    
+                    # Add registry with specified profile
+                    add_ecr_registry "$registry" "$profile"
+                    echo "Registry added with profile: $profile"
+                    
                     echo ""
                     echo "Validating registry after adding..."
-                    validate_ecr_registry "$registry"
-                    ;;
-                3)
-                    update_ecr_registry_interactive
+                    validate_ecr_registry "$registry" "$profile"
+                else
+                    echo "Usage: ecr-mgr add <registry-url> <aws-profile>"
+                    echo "Example: ecr-mgr add 123456789012.dkr.ecr.us-east-1.amazonaws.com my-profile"
                     echo ""
-                    echo "Validating registry after updating..."
-                    validate_ecr_registry "$registry"
-                    ;;
-                4)
-                    echo "Available registries:"
-                    list_ecr_registries | nl -v1
+                    echo "Available AWS profiles:"
+                    list_aws_profiles | sed 's/^/  /'
+                fi
+                ;;
+            "update")
+                local registry="''${2:-}"
+                local profile="''${3:-}"
+                if [[ -n "$registry" && -n "$profile" ]]; then
+                    local current_profile
+                    current_profile=$(get_ecr_registry_profile "$registry")
+                    
+                    echo "Updating registry: $registry"
+                    echo "Current profile: $current_profile"
+                    echo "New profile: $profile"
                     echo ""
-                    read -p "Enter registry number to remove: " reg_num
-                    local registry
-                    registry=$(list_ecr_registries | sed -n "''${reg_num}p")
-                    if [[ -n "$registry" ]]; then
-                        read -p "Remove registry '$registry'? (y/N): " confirm
-                        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-                            remove_ecr_registry "$registry"
-                        fi
-                    fi
-                    ;;
-                5)
-                    validate_ecr_registry_interactive
-                    ;;
-                6)
-                    test_ecr_registry_interactive
-                    ;;
-                7)
-                    break
-                    ;;
-                *)
-                    echo "Invalid option"
-                    ;;
-            esac
-        done
+                    
+                    # Update the registry profile
+                    update_ecr_registry_profile "$registry" "$profile"
+                    echo "Updated ECR registry: $registry -> $profile"
+                    
+                    # Validate the updated registry
+                    echo ""
+                    echo "Validating updated registry..."
+                    validate_ecr_registry "$registry" "$profile"
+                else
+                    echo "Usage: ecr-mgr update <registry-url> <aws-profile>"
+                    echo "Example: ecr-mgr update 123456789012.dkr.ecr.us-east-1.amazonaws.com my-profile"
+                fi
+                ;;
+            "rm")
+                local registry="''${2:-}"
+                if [[ -n "$registry" ]]; then
+                    remove_ecr_registry "$registry"
+                else
+                    echo "Usage: ecr-mgr rm <registry-url>"
+                    echo "Example: ecr-mgr rm 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+                fi
+                ;;
+            "validate")
+                local registry="''${2:-}"
+                if [[ -n "$registry" ]]; then
+                    validate_ecr_registry "$registry"
+                else
+                    echo "Usage: ecr-mgr validate <registry-url>"
+                    echo "Example: ecr-mgr validate 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+                fi
+                ;;
+            "validate-after-sync")
+                validate_ecr_registries_after_aws_sync
+                ;;
+            "help"|*)
+                show_help
+                ;;
+        esac
     }
     
     # Execute the manager

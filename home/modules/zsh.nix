@@ -33,6 +33,7 @@
     # Oh My Zsh configuration - minimal and working plugins only
     oh-my-zsh = {
       enable = true;
+      custom = "${config.programs.zsh.dotDir}/custom";
       plugins = [
         # Core utilities (verified to exist)
         "aliases"
@@ -168,6 +169,11 @@
         "zeus"
         "zoxide"
         "zsh-interactive-cd"
+        
+        # Custom completion plugins
+        "aws-manager"
+        "ecr-manager" 
+        "ssh-setup"
       ];
     };
 
@@ -322,8 +328,10 @@
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
       ZSH_COMPDUMP = "${config.xdg.cacheHome}/zsh/.zcompdump-${hostname}";
+      ZSH_CUSTOM = "${config.programs.zsh.dotDir}/custom";
       # POWERLEVEL9K_CONFIG_FILE = "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"; # enable this when p10k merges mise config
     };
+
 
     shellAliases = {
       # General Nix aliases
