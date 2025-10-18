@@ -6,6 +6,6 @@
     ./ecr-manager.nix
     ./smart-ecr-helper.nix
     ./shell-utils.nix
-    ./dev-tools.nix
+    ./ssh-setup.nix
   ];
 }
