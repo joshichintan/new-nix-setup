@@ -20,18 +20,21 @@
           
           case $state in
             utility)
-              _values 'utility' 'ls' 'add' 'update' 'rm' 'test' 'sync' 'status' 'help'
+              _values 'utility' 'ls' 'add' 'update' 'rm' 'set' 'test' 'sync' 'status' 'help'
               ;;
             object)
               case $words[2] in
                 ls)
-                  _values 'object' 'sso' 'profiles'
+                  _values 'object' 'sso' 'profiles' 'region' 'output'
                   ;;
                 add|update|rm)
                   _values 'object' 'sso'
                   ;;
                 test)
                   _values 'object' 'profiles'
+                  ;;
+                set)
+                  _values 'object' 'region' 'output'
                   ;;
               esac
               ;;
@@ -52,6 +55,16 @@
                     *)
                       # If we're here, we need to complete the sso parameter
                       _values 'object' 'sso'
+                      ;;
+                  esac
+                  ;;
+                set)
+                  case $words[3] in
+                    region)
+                      _values 'regions' 'us-east-1' 'us-west-2' 'us-west-1' 'eu-west-1' 'eu-central-1' 'ap-southeast-1' 'ap-northeast-1'
+                      ;;
+                    output)
+                      _values 'output-formats' 'json' 'table' 'text' 'yaml'
                       ;;
                   esac
                   ;;

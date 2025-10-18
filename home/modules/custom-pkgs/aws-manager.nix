@@ -176,7 +176,7 @@ let
         local account_id="$2"
         local role_name="$3"
         local session_name="$4"
-        local region="$5"
+        # Note: region removed - profiles inherit from [default] or environment
         local aws_config="$HOME/.aws/config"
         
         # Add profile to config
@@ -186,7 +186,6 @@ let
 sso_session = $session_name
 sso_account_id = $account_id
 sso_role_name = $role_name
-region = $region
 output = json
 EOF
     }
@@ -313,7 +312,7 @@ EOF
                 account_id=$(echo "$accounts_json" | jq -r --arg name "$account_name" '.accountList[] | select(.accountName == $name) | .accountId')
                 
                 if [[ -n "$account_id" ]]; then
-                    create_profile "$profile_name" "$account_id" "$role_name" "$session_name" "$region"
+                    create_profile "$profile_name" "$account_id" "$role_name" "$session_name"
                 fi
             done < "$to_add_file"
         fi
@@ -526,10 +525,14 @@ with open('$config_file', 'w') as f:
         echo ""
         echo "Commands:"
         echo "  ls sso                    List SSO sessions"
+        echo "  ls profiles              List AWS profiles"
+        echo "  ls region                Show current region configuration"
+        echo "  ls output                Show current output configuration"
         echo "  add sso                   Add new SSO session"
         echo "  update sso <session>      Update SSO session"
         echo "  rm sso <session>          Remove SSO session"
-        echo "  ls profiles              List AWS profiles"
+        echo "  set region <region>       Set default region"
+        echo "  set output <format>       Set default output format"
         echo "  test profiles             Test AWS profiles"
         echo "  sync                     Sync profiles from SSO"
         echo "  status                   Show current status"
@@ -537,10 +540,14 @@ with open('$config_file', 'w') as f:
         echo ""
         echo "Examples:"
         echo "  aws-mgr ls sso"
+        echo "  aws-mgr ls profiles"
+        echo "  aws-mgr ls region"
+        echo "  aws-mgr ls output"
         echo "  aws-mgr add sso"
         echo "  aws-mgr update sso my-company-sso"
         echo "  aws-mgr rm sso my-company-sso"
-        echo "  aws-mgr ls profiles"
+        echo "  aws-mgr set region us-west-2"
+        echo "  aws-mgr set output table"
         echo "  aws-mgr test profiles"
         echo "  aws-mgr sync"
         echo "  aws-mgr status"
@@ -622,8 +629,38 @@ with open('$config_file', 'w') as f:
                             fi
                         done
                         ;;
+                    "region")
+                        echo "Current Region Configuration:"
+                        echo "============================"
+                        echo ""
+                        echo "Environment Variable: ''${AWS_DEFAULT_REGION:-not set}"
+                        echo "Config File Default: $(aws configure get region 2>/dev/null || echo 'not set')"
+                        echo ""
+                        if [[ -n "''${AWS_DEFAULT_REGION:-}" ]]; then
+                            echo "Effective Region: $AWS_DEFAULT_REGION (from environment)"
+                        else
+                            echo "Effective Region: $(aws configure get region 2>/dev/null || echo 'us-east-1 (SDK default)')"
+                        fi
+                        echo ""
+                        echo "Priority: Command Line > Environment > Profile > Config File > SDK Default"
+                        ;;
+                    "output")
+                        echo "Current Output Configuration:"
+                        echo "============================="
+                        echo ""
+                        echo "Environment Variable: ''${AWS_DEFAULT_OUTPUT_FORMAT:-not set}"
+                        echo "Config File Default: $(aws configure get output 2>/dev/null || echo 'not set')"
+                        echo ""
+                        if [[ -n "''${AWS_DEFAULT_OUTPUT_FORMAT:-}" ]]; then
+                            echo "Effective Output: $AWS_DEFAULT_OUTPUT_FORMAT (from environment)"
+                        else
+                            echo "Effective Output: $(aws configure get output 2>/dev/null || echo 'json (SDK default)')"
+                        fi
+                        echo ""
+                        echo "Available Formats: json, table, text, yaml"
+                        ;;
                     *)
-                        echo "Usage: aws-mgr ls <sso|profiles>"
+                        echo "Usage: aws-mgr ls <sso|profiles|region|output>"
                         ;;
                 esac
                 ;;
@@ -717,6 +754,43 @@ with open('$config_file', 'w') as f:
                         ;;
                     *)
                         echo "Usage: aws-mgr test <profiles>"
+                        ;;
+                esac
+                ;;
+            "set")
+                local setting="''${2:-}"
+                local value="''${3:-}"
+                
+                case "$setting" in
+                    "region")
+                        if [[ -n "$value" ]]; then
+                            aws configure set region "$value"
+                            echo "✓ Set default region to $value"
+                            echo "  This will affect all AWS CLI commands"
+                            echo "  Region is now permanently set in ~/.aws/config"
+                        else
+                            echo "Usage: aws-mgr set region <region-name>"
+                            echo "Example: aws-mgr set region us-west-2"
+                        fi
+                        ;;
+                    "output")
+                        if [[ -n "$value" ]]; then
+                            aws configure set output "$value"
+                            echo "✓ Set default output format to $value"
+                            echo "  This will affect all AWS CLI commands"
+                            echo "  Output format is now permanently set in ~/.aws/config"
+                        else
+                            echo "Usage: aws-mgr set output <format>"
+                            echo "Formats: json, table, text, yaml"
+                            echo "Example: aws-mgr set output table"
+                        fi
+                        ;;
+                    *)
+                        echo "Usage: aws-mgr set <region|output> <value>"
+                        echo ""
+                        echo "Examples:"
+                        echo "  aws-mgr set region us-west-2"
+                        echo "  aws-mgr set output table"
                         ;;
                 esac
                 ;;
