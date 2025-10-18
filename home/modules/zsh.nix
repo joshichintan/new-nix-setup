@@ -266,13 +266,15 @@
           CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
 
           echo "» Activating Home Manager..."
-          nix --extra-experimental-features 'nix-command flakes' run \
-            "''${CONFIG_PATH}#homeConfigurations.\"''${USERNAME}@''${HOSTNAME}\".activationPackage"
-          
-          # Hand off cleanup to background at the end
-          (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
-          
-          echo "✓ Home Manager activated"
+          if nix --extra-experimental-features 'nix-command flakes' run \
+            "''${CONFIG_PATH}#homeConfigurations.\"''${USERNAME}@''${HOSTNAME}\".activationPackage"; then
+            # Hand off cleanup to background at the end
+            (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
+            echo "✓ Home Manager activated"
+          else
+            echo "✗ Home Manager activation failed"
+            return 1
+          fi
         }
         
         darwin() {
@@ -280,13 +282,15 @@
           CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
           
           echo "» Activating Darwin..."
-          sudo nix --extra-experimental-features 'nix-command flakes' run \
-            'nix-darwin#darwin-rebuild' -- switch --flake "''${CONFIG_PATH}#''${HOSTNAME}"
-          
-          # Hand off cleanup to background at the end
-          (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
-          
-          echo "✓ Darwin activated"
+          if sudo nix --extra-experimental-features 'nix-command flakes' run \
+            'nix-darwin#darwin-rebuild' -- switch --flake "''${CONFIG_PATH}#''${HOSTNAME}"; then
+            # Hand off cleanup to background at the end
+            (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
+            echo "✓ Darwin activated"
+          else
+            echo "✗ Darwin activation failed"
+            return 1
+          fi
         }
         
         reload() {
