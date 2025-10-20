@@ -1,8 +1,8 @@
 { config, ... }: {
-  # Custom Oh My Zsh completion plugins
+  # Custom completion plugins for antidote
   home.file = {
     # AWS Manager completion plugin
-    "${config.programs.zsh.dotDir}/custom/plugins/aws-manager/aws-manager.plugin.zsh" = {
+    "${config.programs.zsh.dotDir}/plugins/aws-manager/aws-manager.plugin.zsh" = {
       text = ''
         # AWS Manager Completion Plugin
         # Provides tab completion for aws-mgr command
@@ -79,7 +79,7 @@
     };
 
     # ECR Manager completion plugin
-    "${config.programs.zsh.dotDir}/custom/plugins/ecr-manager/ecr-manager.plugin.zsh" = {
+    "${config.programs.zsh.dotDir}/plugins/ecr-manager/ecr-manager.plugin.zsh" = {
       text = ''
         # ECR Manager Completion Plugin
         # Provides tab completion for ecr-mgr command
@@ -140,7 +140,7 @@
     };
 
     # SSH Setup completion plugin
-    "${config.programs.zsh.dotDir}/custom/plugins/ssh-setup/ssh-setup.plugin.zsh" = {
+    "${config.programs.zsh.dotDir}/plugins/ssh-setup/ssh-setup.plugin.zsh" = {
       text = ''
         # SSH Setup Completion Plugin
         # Provides tab completion for ssh-setup command
@@ -186,7 +186,7 @@
     };
 
     # AWS Context Completion Plugin
-    "${config.programs.zsh.dotDir}/custom/plugins/aws-context/aws-context.plugin.zsh" = {
+    "${config.programs.zsh.dotDir}/plugins/aws-context/aws-context.plugin.zsh" = {
       text = ''
         # AWS Context completion function
         _aws-context() {

@@ -6,5 +6,6 @@
     ./ecr-manager.nix
     ./smart-ecr-helper.nix
     ./ssh-setup.nix
+    ./antidote.nix
   ];
 }
