@@ -30,12 +30,152 @@
     };
     syntaxHighlighting.enable = true;
 
-    # Antidote plugin manager configuration
-    # Using antidote instead of oh-my-zsh for better performance and plugin management
-    antidote = {
+    # Oh My Zsh configuration - minimal and working plugins only
+    oh-my-zsh = {
       enable = true;
-      useFriendlyNames = true;
-      pluginsFile = "${config.xdg.configHome}/zsh/.zsh_plugins.txt";
+      custom = "${config.programs.zsh.dotDir}/custom";
+      plugins = [
+        # Core utilities (verified to exist)
+        "aliases"
+        "colored-man-pages"
+        "command-not-found"
+        "copypath"
+        "copyfile"
+        "dirhistory"
+        "extract"
+        "history"
+        "jsontools"
+        "urltools"
+        "web-search"
+        "z"
+        
+        # Version managers (verified to exist)
+        "nvm"
+        "pyenv"
+        "rbenv"
+        "rvm"
+        
+        # Languages & Frameworks (verified to exist)
+        "node"
+        "npm"
+        "yarn"
+        "composer"
+        "pip"
+        "rust"
+        "golang"
+        "ruby"
+        "rails"
+        "rake"
+        "gem"
+        "bundler"
+        "coffee"
+        "cake"
+        "capistrano"
+        "celery"
+        "ember-cli"
+        "gulp"
+        "grunt"
+        "heroku"
+        "jira"
+        "laravel"
+        "laravel5"
+        "lein"
+        "mix"
+        "mvn"
+        "perl"
+        "phing"
+        "pipenv"
+        "poetry"
+        "react-native"
+        "scala"
+        "sbt"
+        "spring"
+        "symfony"
+        "symfony2"
+        "thor"
+        "vagrant"
+        "vagrant-prompt"
+        "wp-cli"
+        "yii"
+        "yii2"
+        
+        # Cloud & DevOps (verified to exist)
+        "aws"
+        "azure"
+        "docker"
+        "docker-compose"
+        "kubectl"
+        "helm"
+        "minikube"
+        "terraform"
+        "ansible"
+        "cloudfoundry"
+        "codeclimate"
+        "gcloud"
+        "kops"
+        "kubectx"
+        "salt"
+        
+        # Databases (verified to exist)
+        "postgres"
+        "redis-cli"
+        "mysql-macports"
+        
+        # Build Tools (verified to exist)
+        "ant"
+        "bower"
+        "debian"
+        "fabric"
+        "fastfile"
+        "gradle"
+        "macports"
+        "mercurial"
+        "ng"
+        "pass"
+        "pep8"
+        "per-directory-history"
+        "pow"
+        "powder"
+        "repo"
+        "rsync"
+        "sublime"
+        "svn"
+        "svn-fast-info"
+        "systemadmin"
+        "systemd"
+        "taskwarrior"
+        "terminitor"
+        "textastic"
+        "textmate"
+        "tmux"
+        "tmux-cssh"
+        "tmuxinator"
+        "torrent"
+        "ubuntu"
+        "ufw"
+        "universalarchive"
+        "vault"
+        "vi-mode"
+        "vim-interaction"
+        "virtualenv"
+        "vscode"
+        "vundle"
+        "wakeonlan"
+        "watson"
+        "wd"
+        "xcode"
+        "yum"
+        "zbell"
+        "zeus"
+        "zoxide"
+        "zsh-interactive-cd"
+        
+        # Custom completion plugins
+        "aws-context"
+        "aws-manager"
+        "ecr-manager" 
+        "ssh-setup"
+      ];
     };
 
     initContent = let
@@ -86,7 +226,6 @@
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
       ZSH_COMPDUMP = "${config.xdg.cacheHome}/zsh/.zcompdump-${hostname}";
       ZSH_CUSTOM = "${config.programs.zsh.dotDir}/custom";
-      ANTIDOTE_HOME = "${config.xdg.dataHome}/antidote";
       # POWERLEVEL9K_CONFIG_FILE = "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"; # enable this when p10k merges mise config
     };
 
@@ -106,10 +245,5 @@
       # Config editing aliases
       nix-config = "nvim $NIX_USER_CONFIG_PATH";
     };
-  };
-
-  # Add the antidote plugins file
-  home.file."${config.xdg.configHome}/zsh/.zsh_plugins.txt" = {
-    source = ../.zsh_plugins.txt;
   };
 }
