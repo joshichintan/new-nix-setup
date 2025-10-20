@@ -1,5 +1,6 @@
 { config, ... }: {
-  # Custom Oh My Zsh completion plugins
+  # Custom completion plugins for antidote
+  # These plugins provide tab completion for custom commands
   home.file = {
     # AWS Manager completion plugin
     "${config.programs.zsh.dotDir}/custom/plugins/aws-manager/aws-manager.plugin.zsh" = {
