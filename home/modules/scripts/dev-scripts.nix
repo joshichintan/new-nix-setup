@@ -27,8 +27,7 @@
       CONFIG_PATH="''${NIX_USER_CONFIG_PATH:-.}"
 
       echo "» Activating Darwin system..."
-      if nix --extra-experimental-features 'nix-command flakes' run \
-        "''${CONFIG_PATH}#darwinConfigurations.\"''${HOSTNAME}\".system"; then
+      if sudo nix run nix-darwin#darwin-rebuild -- switch --flake "''${CONFIG_PATH}#''${HOSTNAME}"; then
         # Hand off cleanup to background at the end
         (nohup nix-collect-garbage -d > /dev/null 2>&1 &) 2>/dev/null
         echo "✓ Darwin system activated"
