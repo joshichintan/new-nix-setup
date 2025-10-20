@@ -32,159 +32,59 @@
 
     # Antidote plugin manager configuration
     # Using antidote instead of oh-my-zsh for better performance
-    # antidote = {
-    #   enable = true;
-    #   plugins = [
-    #     # Load the use-omz plugin to handle Oh My Zsh dependencies
-    #     "getantidote/use-omz"
-    #     
-    #     # Load Oh My Zsh's library
-    #     "ohmyzsh/ohmyzsh path:lib"
-    #     
-    #     # Core utilities
-    #     "ohmyzsh/ohmyzsh path:plugins/aliases"
-    #     "ohmyzsh/ohmyzsh path:plugins/colored-man-pages"
-    #     "ohmyzsh/ohmyzsh path:plugins/command-not-found"
-    #     "ohmyzsh/ohmyzsh path:plugins/copypath"
-    #     "ohmyzsh/ohmyzsh path:plugins/copyfile"
-    #     "ohmyzsh/ohmyzsh path:plugins/dirhistory"
-    #     "ohmyzsh/ohmyzsh path:plugins/extract"
-    #     "ohmyzsh/ohmyzsh path:plugins/history"
-    #     "ohmyzsh/ohmyzsh path:plugins/jsontools"
-    #     "ohmyzsh/ohmyzsh path:plugins/urltools"
-    #     "ohmyzsh/ohmyzsh path:plugins/web-search"
-    #     "ohmyzsh/ohmyzsh path:plugins/z"
-    #     
-    #     # Version managers
-    #     "ohmyzsh/ohmyzsh path:plugins/nvm"
-    #     "ohmyzsh/ohmyzsh path:plugins/pyenv"
-    #     "ohmyzsh/ohmyzsh path:plugins/rbenv"
-    #     "ohmyzsh/ohmyzsh path:plugins/rvm"
-    #     
-    #     # Languages & Frameworks
-    #     "ohmyzsh/ohmyzsh path:plugins/node"
-    #     "ohmyzsh/ohmyzsh path:plugins/npm"
-    #     "ohmyzsh/ohmyzsh path:plugins/yarn"
-    #     "ohmyzsh/ohmyzsh path:plugins/composer"
-    #     "ohmyzsh/ohmyzsh path:plugins/pip"
-    #     "ohmyzsh/ohmyzsh path:plugins/rust"
-    #     "ohmyzsh/ohmyzsh path:plugins/golang"
-    #     "ohmyzsh/ohmyzsh path:plugins/ruby"
-    #     "ohmyzsh/ohmyzsh path:plugins/rails"
-    #     "ohmyzsh/ohmyzsh path:plugins/rake"
-    #     "ohmyzsh/ohmyzsh path:plugins/gem"
-    #     "ohmyzsh/ohmyzsh path:plugins/bundler"
-    #     "ohmyzsh/ohmyzsh path:plugins/coffee"
-    #     "ohmyzsh/ohmyzsh path:plugins/cake"
-    #     "ohmyzsh/ohmyzsh path:plugins/capistrano"
-    #     "ohmyzsh/ohmyzsh path:plugins/celery"
-    #     "ohmyzsh/ohmyzsh path:plugins/ember-cli"
-    #     "ohmyzsh/ohmyzsh path:plugins/gulp"
-    #     "ohmyzsh/ohmyzsh path:plugins/grunt"
-    #     "ohmyzsh/ohmyzsh path:plugins/heroku"
-    #     "ohmyzsh/ohmyzsh path:plugins/jira"
-    #     "ohmyzsh/ohmyzsh path:plugins/laravel"
-    #     "ohmyzsh/ohmyzsh path:plugins/laravel5"
-    #     "ohmyzsh/ohmyzsh path:plugins/lein"
-    #     "ohmyzsh/ohmyzsh path:plugins/mix"
-    #     "ohmyzsh/ohmyzsh path:plugins/mvn"
-    #     "ohmyzsh/ohmyzsh path:plugins/perl"
-    #     "ohmyzsh/ohmyzsh path:plugins/phing"
-    #     "ohmyzsh/ohmyzsh path:plugins/pipenv"
-    #     "ohmyzsh/ohmyzsh path:plugins/poetry"
-    #     "ohmyzsh/ohmyzsh path:plugins/react-native"
-    #     "ohmyzsh/ohmyzsh path:plugins/scala"
-    #     "ohmyzsh/ohmyzsh path:plugins/sbt"
-    #     "ohmyzsh/ohmyzsh path:plugins/spring"
-    #     "ohmyzsh/ohmyzsh path:plugins/symfony"
-    #     "ohmyzsh/ohmyzsh path:plugins/symfony2"
-    #     "ohmyzsh/ohmyzsh path:plugins/thor"
-    #     "ohmyzsh/ohmyzsh path:plugins/vagrant"
-    #     "ohmyzsh/ohmyzsh path:plugins/vagrant-prompt"
-    #     "ohmyzsh/ohmyzsh path:plugins/wp-cli"
-    #     "ohmyzsh/ohmyzsh path:plugins/yii"
-    #     "ohmyzsh/ohmyzsh path:plugins/yii2"
-    #     
-    #     # Cloud & DevOps
-    #     "ohmyzsh/ohmyzsh path:plugins/aws"
-    #     "ohmyzsh/ohmyzsh path:plugins/azure"
-    #     "ohmyzsh/ohmyzsh path:plugins/docker"
-    #     "ohmyzsh/ohmyzsh path:plugins/docker-compose"
-    #     "ohmyzsh/ohmyzsh path:plugins/kubectl"
-    #     "ohmyzsh/ohmyzsh path:plugins/helm"
-    #     "ohmyzsh/ohmyzsh path:plugins/minikube"
-    #     "ohmyzsh/ohmyzsh path:plugins/terraform"
-    #     "ohmyzsh/ohmyzsh path:plugins/ansible"
-    #     "ohmyzsh/ohmyzsh path:plugins/cloudfoundry"
-    #     "ohmyzsh/ohmyzsh path:plugins/codeclimate"
-    #     "ohmyzsh/ohmyzsh path:plugins/gcloud"
-    #     "ohmyzsh/ohmyzsh path:plugins/kops"
-    #     "ohmyzsh/ohmyzsh path:plugins/kubectx"
-    #     "ohmyzsh/ohmyzsh path:plugins/salt"
-    #     
-    #     # Databases
-    #     "ohmyzsh/ohmyzsh path:plugins/postgres"
-    #     "ohmyzsh/ohmyzsh path:plugins/redis-cli"
-    #     "ohmyzsh/ohmyzsh path:plugins/mysql-macports"
-    #     
-    #     # Build Tools
-    #     "ohmyzsh/ohmyzsh path:plugins/ant"
-    #     "ohmyzsh/ohmyzsh path:plugins/bower"
-    #     "ohmyzsh/ohmyzsh path:plugins/debian"
-    #     "ohmyzsh/ohmyzsh path:plugins/fabric"
-    #     "ohmyzsh/ohmyzsh path:plugins/fastfile"
-    #     "ohmyzsh/ohmyzsh path:plugins/gradle"
-    #     "ohmyzsh/ohmyzsh path:plugins/macports"
-    #     "ohmyzsh/ohmyzsh path:plugins/mercurial"
-    #     "ohmyzsh/ohmyzsh path:plugins/ng"
-    #     "ohmyzsh/ohmyzsh path:plugins/pass"
-    #     "ohmyzsh/ohmyzsh path:plugins/pep8"
-    #     "ohmyzsh/ohmyzsh path:plugins/per-directory-history"
-    #     "ohmyzsh/ohmyzsh path:plugins/pow"
-    #     "ohmyzsh/ohmyzsh path:plugins/powder"
-    #     "ohmyzsh/ohmyzsh path:plugins/repo"
-    #     "ohmyzsh/ohmyzsh path:plugins/rsync"
-    #     "ohmyzsh/ohmyzsh path:plugins/sublime"
-    #     "ohmyzsh/ohmyzsh path:plugins/svn"
-    #     "ohmyzsh/ohmyzsh path:plugins/svn-fast-info"
-    #     "ohmyzsh/ohmyzsh path:plugins/systemadmin"
-    #     "ohmyzsh/ohmyzsh path:plugins/systemd"
-    #     "ohmyzsh/ohmyzsh path:plugins/taskwarrior"
-    #     "ohmyzsh/ohmyzsh path:plugins/terminitor"
-    #     "ohmyzsh/ohmyzsh path:plugins/textastic"
-    #     "ohmyzsh/ohmyzsh path:plugins/textmate"
-    #     "ohmyzsh/ohmyzsh path:plugins/tmux"
-    #     "ohmyzsh/ohmyzsh path:plugins/tmux-cssh"
-    #     "ohmyzsh/ohmyzsh path:plugins/tmuxinator"
-    #     "ohmyzsh/ohmyzsh path:plugins/torrent"
-    #     "ohmyzsh/ohmyzsh path:plugins/ubuntu"
-    #     "ohmyzsh/ohmyzsh path:plugins/ufw"
-    #     "ohmyzsh/ohmyzsh path:plugins/universalarchive"
-    #     "ohmyzsh/ohmyzsh path:plugins/vault"
-    #     "ohmyzsh/ohmyzsh path:plugins/vi-mode"
-    #     "ohmyzsh/ohmyzsh path:plugins/vim-interaction"
-    #     "ohmyzsh/ohmyzsh path:plugins/virtualenv"
-    #     "ohmyzsh/ohmyzsh path:plugins/vscode"
-    #     "ohmyzsh/ohmyzsh path:plugins/vundle"
-    #     "ohmyzsh/ohmyzsh path:plugins/wakeonlan"
-    #     "ohmyzsh/ohmyzsh path:plugins/watson"
-    #     "ohmyzsh/ohmyzsh path:plugins/wd"
-    #     "ohmyzsh/ohmyzsh path:plugins/xcode"
-    #     "ohmyzsh/ohmyzsh path:plugins/yum"
-    #     "ohmyzsh/ohmyzsh path:plugins/zbell"
-    #     "ohmyzsh/ohmyzsh path:plugins/zeus"
-    #     "ohmyzsh/ohmyzsh path:plugins/zoxide"
-    #     "ohmyzsh/ohmyzsh path:plugins/zsh-interactive-cd"
-    #     
-    #     # Custom completion plugins
-    #     "local/aws-context path:${config.programs.zsh.dotDir}/plugins/aws-context"
-    #     "local/aws-manager path:${config.programs.zsh.dotDir}/plugins/aws-manager"
-    #     "local/ecr-manager path:${config.programs.zsh.dotDir}/plugins/ecr-manager"
-    #     "local/ssh-setup path:${config.programs.zsh.dotDir}/plugins/ssh-setup"
-    #   ];
-    # };
+    antidote = {
+      enable = true;
+      plugins = [
+        # Load the use-omz plugin to handle Oh My Zsh dependencies
+        "getantidote/use-omz"
+        
+        # Deferred loading plugin
+        "romkatv/zsh-defer"
+        
+        # Load Oh My Zsh's library
+        "ohmyzsh/ohmyzsh path:lib"
+        
+        # Core productivity utilities
+        "ohmyzsh/ohmyzsh path:plugins/aliases"
+        "ohmyzsh/ohmyzsh path:plugins/colored-man-pages"
+        "ohmyzsh/ohmyzsh path:plugins/z"
+        
+        # AI and search plugins
+        "HundredAcreStudio/zsh-claude"
+        "muePatrick/zsh-ai-commands"
+        
+        # Essential tools (keep for aliases, fzf-tab handles completions)
+        "ohmyzsh/ohmyzsh path:plugins/aws"
+        "ohmyzsh/ohmyzsh path:plugins/docker"
+        "ohmyzsh/ohmyzsh path:plugins/helm"
+        "ohmyzsh/ohmyzsh path:plugins/kubectl"
+        "ohmyzsh/ohmyzsh path:plugins/postgres"
+        "ohmyzsh/ohmyzsh path:plugins/terraform"
+        "ohmyzsh/ohmyzsh path:plugins/vault"
+        
+        # Git & productivity (keep for aliases, fzf-tab handles completions)
+        "ohmyzsh/ohmyzsh path:plugins/git"
+        "ohmyzsh/ohmyzsh path:plugins/tmux"
+        "ohmyzsh/ohmyzsh path:plugins/zoxide"
+        
+        # Custom completion plugins (deferred loading)
+        # These will be loaded on-demand when the commands are first used
+        "${config.programs.zsh.dotDir}/plugins/aws-context"
+        "${config.programs.zsh.dotDir}/plugins/aws-manager"
+        "${config.programs.zsh.dotDir}/plugins/ecr-manager"
+        "${config.programs.zsh.dotDir}/plugins/ssh-setup"
+      ];
+    };
 
     initContent = let
+      # ══════════════════════════════════════════════════════════════════════
+      # SECTION 0: Performance Profiling (DISABLED)
+      # ══════════════════════════════════════════════════════════════════════
+      # profiling = lib.mkOrder 0 ''
+      #   # Load zsh profiling module for startup performance analysis
+      #   zmodload zsh/zprof
+      # '';
+
       # ══════════════════════════════════════════════════════════════════════
       # SECTION 1: Powerlevel10k Instant Prompt
       # ══════════════════════════════════════════════════════════════════════
@@ -206,8 +106,43 @@
         # PATH Configuration
         export PATH="$HOME/.rd/bin:$PATH"
       '';
+
+      # SECTION 3: Deferred Loading for Custom Plugins
+      # ══════════════════════════════════════════════════════════════════════
+      deferredPlugins = lib.mkOrder 2000 ''
+        # Defer loading of custom plugins until they're actually needed
+        # This improves shell startup performance
+        
+        # AWS Manager - load when aws-mgr command is used
+        if command -v aws-mgr >/dev/null 2>&1; then
+          zsh-defer source "${config.programs.zsh.dotDir}/plugins/aws-manager/aws-manager.plugin.zsh"
+        fi
+        
+        # AWS Context - load when aws-context command is used
+        if command -v aws-context >/dev/null 2>&1; then
+          zsh-defer source "${config.programs.zsh.dotDir}/plugins/aws-context/aws-context.plugin.zsh"
+        fi
+        
+        # ECR Manager - load when ecr-mgr command is used
+        if command -v ecr-mgr >/dev/null 2>&1; then
+          zsh-defer source "${config.programs.zsh.dotDir}/plugins/ecr-manager/ecr-manager.plugin.zsh"
+        fi
+        
+        # SSH Setup - load when ssh-setup command is used
+        if command -v ssh-setup >/dev/null 2>&1; then
+          zsh-defer source "${config.programs.zsh.dotDir}/plugins/ssh-setup/ssh-setup.plugin.zsh"
+        fi
+      '';
+
+      # ══════════════════════════════════════════════════════════════════════
+      # SECTION 5: Performance Profiling Output (DISABLED)
+      # ══════════════════════════════════════════════════════════════════════
+      # profilingOutput = lib.mkOrder 9999 ''
+      #   # Display profiling results at the end of startup
+      #   zprof
+      # '';
     in
-      lib.mkMerge [ p10kPrompt environment ];
+      lib.mkMerge [ p10kPrompt environment deferredPlugins ];
 
     # Native Nix plugins (much faster than zplug)
     plugins = [
@@ -231,6 +166,7 @@
     sessionVariables = {
       NIX_USER_CONFIG_PATH = "${config.xdg.configHome}/nix-config";
       ZSH_COMPDUMP = "${config.xdg.cacheHome}/zsh/.zcompdump-${hostname}";
+      ZSH_AI_COMMANDS_OPENAI_API_KEY = "";
       # POWERLEVEL9K_CONFIG_FILE = "${config.programs.zsh.dotDir}/p10k-config/.p10k.zsh"; # enable this when p10k merges mise config
     };
 

@@ -7,9 +7,8 @@
   # Git configuration
   programs.git = {
     enable = true;
-    diff-so-fancy.enable = true;
     lfs.enable = true;
-    extraConfig = {
+    settings = {
       init = {
         defaultBranch = "main";
       };
@@ -21,6 +20,12 @@
         rebase = true;
       };
     };
+  };
+
+  # Diff-so-fancy configuration (moved to separate module)
+  programs.diff-so-fancy = {
+    enable = true;
+    enableGitIntegration = true;
   };
 
   # Create the Git config file explicitly at the XDG location

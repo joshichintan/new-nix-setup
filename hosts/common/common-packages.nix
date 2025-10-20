@@ -21,6 +21,7 @@ in {
     dua # Modern Unix `du`
     duf # Modern Unix `df`
     entr # Modern Unix `watch`
+    kubectl
     fzf
     gh
     ripgrep
