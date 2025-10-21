@@ -42,6 +42,10 @@
           nix-homebrew = {
             enable = true;
             enableRosetta = false;  # Disable Rosetta to use ARM64 Homebrew
+            # NOTE: This must match the Homebrew path in home/modules/zsh.nix
+            # If you change enableRosetta, update the path in zsh.nix accordingly:
+            # - enableRosetta = false -> /opt/homebrew (ARM64) - matches zsh.nix
+            # - enableRosetta = true  -> /usr/local (Intel/Rosetta) - would need zsh.nix update
             autoMigrate = true;
             mutableTaps = true;
             user = "${username}";

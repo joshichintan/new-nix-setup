@@ -105,6 +105,13 @@
       environment = lib.mkOrder 1000 ''
         # PATH Configuration
         export PATH="$HOME/.rd/bin:$PATH"
+        
+        # Homebrew environment (ARM64)
+        # NOTE: This must match nix-homebrew.enableRosetta = false in lib/helpers.nix
+        # If you change enableRosetta, update this path accordingly:
+        # - enableRosetta = false -> /opt/homebrew (ARM64)
+        # - enableRosetta = true  -> /usr/local (Intel/Rosetta)
+        eval "$(/opt/homebrew/bin/brew shellenv)"
       '';
 
       # SECTION 3: Deferred Loading for Custom Plugins
