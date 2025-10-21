@@ -41,7 +41,7 @@
         {
           nix-homebrew = {
             enable = true;
-            enableRosetta = true;
+            enableRosetta = false;  # Disable Rosetta to use ARM64 Homebrew
             autoMigrate = true;
             mutableTaps = true;
             user = "${username}";

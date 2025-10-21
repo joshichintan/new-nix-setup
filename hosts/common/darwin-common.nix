@@ -93,7 +93,7 @@ in {
     casks = [
       "aerospace"
       "intellij-idea-ce"
-      "postico"  # PostgreSQL client for macOS
+      "datagrip"
       # "nikitabobko/tap/aerospace"
       # "displaylink"
       #"docker"
@@ -101,7 +101,6 @@ in {
       # "font-meslo-lg-nerd-font"
       # "logitech-options"
       # "slack"
-      "spotify"
       "cursor"
       "rancher"
       "visual-studio-code"
