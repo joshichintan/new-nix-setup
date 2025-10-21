@@ -60,11 +60,15 @@ in {
     };
   };
 
+  programs.bash = {
+    enable = false;
+  }
+
   programs.nix-index.enable = true;
 
   programs.zsh = {
     # shellInit = "SHELL_SESSIONS_DISABLE=1";
-    enable = true;
+    enable = false;  # Disable nix-darwin zsh management since we use home-manager
     # enableCompletion = true;
     # dotDir = ".config/zsh";
   };
