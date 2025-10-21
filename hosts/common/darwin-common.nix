@@ -36,8 +36,7 @@ in {
     # how to install unstablePkgs? follow below pattern
     # unstablePkgs.yt-dlp
 
-    pkgs.nix
-    inputs.alejandra.defaultPackage.${system}
+    # pkgs.nix moved to home-manager packages.nix
   ];
 
   fonts.packages = [

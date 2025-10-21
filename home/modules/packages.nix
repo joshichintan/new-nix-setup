@@ -9,7 +9,7 @@
     # Development tools
     # git
     # curl
-    # wget
+    wget
 
     # Programming languages
     # nodejs_20
@@ -43,7 +43,7 @@
     awscli2
     amazon-ecr-credential-helper
     # Note: smart-ecr-helper is provided by ecr.nix module
-    # kubectl
+    kubectl
     # docker
     # docker-compose
 
@@ -54,24 +54,37 @@
 
     # # System tools
     # tmux
-    # fzf
-    # zoxide  # Better cd
-    # direnv  # Environment management
+    # fzf  # Already enabled in programs.fzf
+    # zoxide  # Already enabled in programs.zoxide
+    # direnv  # Already enabled in programs.direnv
 
     # # Text processing
-    # ripgrep
+    ripgrep
     # fd
-    # bat
+    # bat  # Already enabled in programs.bat
     # sd  # sed alternative
     # xsv  # CSV processing
 
     # # Monitoring
-    # htop
+    # htop  # Already enabled in programs.htop
     # iotop
     # nethogs
 
     # # Security
     # gpg
     # pass  # Password manager
+
+    # Moved from darwin common packages
+    nix  # Nix package manager
+    coreutils
+    diffr # Modern Unix `diff`
+    difftastic # Modern Unix `diff`
+    drill
+    du-dust # Modern Unix `du`
+    dua # Modern Unix `du`
+    duf # Modern Unix `df`
+    entr # Modern Unix `watch`
+    gh
+    wezterm
   ];
 }

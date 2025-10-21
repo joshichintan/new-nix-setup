@@ -12,20 +12,21 @@ in {
     # nixpkgs-unstable.legacyPackages.${pkgs.system}.beszel
 
     ## stable
-    bat
-    coreutils
-    diffr # Modern Unix `diff`
-    difftastic # Modern Unix `diff`
-    drill
-    du-dust # Modern Unix `du`
-    dua # Modern Unix `du`
-    duf # Modern Unix `df`
-    entr # Modern Unix `watch`
-    kubectl
-    fzf
-    gh
-    ripgrep
-    wget
-    wezterm
+    # Packages moved to home-manager packages.nix
+    # bat
+    # coreutils
+    # diffr # Modern Unix `diff`
+    # difftastic # Modern Unix `diff`
+    # drill
+    # du-dust # Modern Unix `du`
+    # dua # Modern Unix `du`
+    # duf # Modern Unix `df`
+    # entr # Modern Unix `watch`
+    # kubectl
+    # fzf
+    # gh
+    # ripgrep
+    # wget
+    # wezterm
   ];
 }

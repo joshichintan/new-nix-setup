@@ -478,10 +478,6 @@ show_flake_boilerplate() {
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
-    alejandra = {
-      url = "github:kamadorueda/alejandra/4.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     nvf = {
       url = "github:notashelf/nvf";
