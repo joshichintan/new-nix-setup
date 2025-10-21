@@ -62,7 +62,7 @@ in {
 
   programs.bash = {
     enable = false;
-  }
+  };
 
   programs.nix-index.enable = true;
 
