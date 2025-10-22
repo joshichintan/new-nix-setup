@@ -50,14 +50,15 @@
         "ohmyzsh/ohmyzsh path:plugins/z"
         
         # AI and search plugins
-        "HundredAcreStudio/zsh-claude"
-        "muePatrick/zsh-ai-commands"
+        # "HundredAcreStudio/zsh-claude"
+        # "muePatrick/zsh-ai-commands"  # Temporarily disabled - requires API key setup
+        # To enable zsh-ai-commands:
+        # 1. Set ZSH_AI_COMMANDS_OPENAI_API_KEY in sessionVariables below
+        # 2. Uncomment the line above
+        # 3. Run: nix run ${NIX_USER_CONFIG_PATH:-.}#homeConfigurations.$(whoami)@$(scutil --get LocalHostName).activationPackage
         
         # Essential tools (keep for aliases, fzf-tab handles completions)
         "ohmyzsh/ohmyzsh path:plugins/aws"
-        "ohmyzsh/ohmyzsh path:plugins/docker"
-        "ohmyzsh/ohmyzsh path:plugins/helm"
-        "ohmyzsh/ohmyzsh path:plugins/kubectl"
         "ohmyzsh/ohmyzsh path:plugins/postgres"
         "ohmyzsh/ohmyzsh path:plugins/terraform"
         "ohmyzsh/ohmyzsh path:plugins/vault"
@@ -138,6 +139,51 @@
         # SSH Setup - load when ssh-setup command is used
         if command -v ssh-setup >/dev/null 2>&1; then
           zsh-defer source "${config.programs.zsh.dotDir}/plugins/ssh-setup/ssh-setup.plugin.zsh"
+        fi
+        
+        # ══════════════════════════════════════════════════════════════════════
+        # COMPLETION STRATEGY FOR TOOLS
+        # ══════════════════════════════════════════════════════════════════════
+        # 
+        # PRIORITY ORDER FOR COMPLETIONS:
+        # 1. NATIVE COMPLETIONS FIRST - Use `tool completion zsh` if available
+        # 2. ANTIDOTE PLUGINS SECOND - Use plugins for tools without native completions
+        # 
+        # HOW TO ADD NEW TOOL COMPLETIONS:
+        # 1. If no native completion, search for Antidote plugins and add to plugins list
+        # 2. Add completion loading for tools that don't have the completion command
+        #
+        # FALLBACK STRATEGY:
+        # Don't add anything if completion is not available
+        # ══════════════════════════════════════════════════════════════════════
+        
+        # K9s completion - load automatically if k9s exists
+        if command -v k9s >/dev/null 2>&1; then
+          source <(k9s completion zsh)
+        fi
+        
+        # Kubectl completion - load automatically if kubectl exists
+        if command -v kubectl >/dev/null 2>&1; then
+          source <(kubectl completion zsh)
+        fi
+        
+        # Helm completion - load automatically if helm exists
+        if command -v helm >/dev/null 2>&1; then
+          source <(helm completion zsh)
+        fi
+        
+        # Rancher Desktop CLI completion - load automatically if rdctl exists
+        if command -v rdctl >/dev/null 2>&1; then
+          source <(rdctl completion zsh)
+        fi
+        
+        # Docker completion - try native first, fall back to Oh My Zsh plugin
+        if command -v docker >/dev/null 2>&1; then
+          # Try native completion first
+          if docker completion zsh >/dev/null 2>&1; then
+            source <(docker completion zsh)
+          fi
+          # Oh My Zsh docker plugin is already loaded above for aliases
         fi
       '';
 

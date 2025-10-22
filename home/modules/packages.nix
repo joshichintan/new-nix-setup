@@ -42,10 +42,11 @@
     # # Cloud tools
     awscli2
     amazon-ecr-credential-helper
+    aws-vault
+    terraform
     # Note: smart-ecr-helper is provided by ecr.nix module
-    kubectl
+    # kubectl # installed through rancher-desktop
     # docker
-    # docker-compose
 
     # # Network tools
     # nmap
@@ -86,5 +87,6 @@
     entr # Modern Unix `watch`
     gh
     wezterm
+    # k9s
   ];
 }

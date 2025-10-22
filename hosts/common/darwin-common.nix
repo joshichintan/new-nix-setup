@@ -103,6 +103,7 @@ in {
       "cursor"
       "rancher"
       "visual-studio-code"
+      "raycast"
     ];
     masApps = {
       # "Keynote" = 409183694;
