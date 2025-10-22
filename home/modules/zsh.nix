@@ -70,7 +70,6 @@
         
         # Custom completion plugins (deferred loading)
         # These will be loaded on-demand when the commands are first used
-        "${config.programs.zsh.dotDir}/plugins/aws-context"
         "${config.programs.zsh.dotDir}/plugins/aws-manager"
         "${config.programs.zsh.dotDir}/plugins/ecr-manager"
         "${config.programs.zsh.dotDir}/plugins/ssh-setup"
@@ -124,11 +123,6 @@
         # AWS Manager - load when aws-mgr command is used
         if command -v aws-mgr >/dev/null 2>&1; then
           zsh-defer source "${config.programs.zsh.dotDir}/plugins/aws-manager/aws-manager.plugin.zsh"
-        fi
-        
-        # AWS Context - load when aws-context command is used
-        if command -v aws-context >/dev/null 2>&1; then
-          zsh-defer source "${config.programs.zsh.dotDir}/plugins/aws-context/aws-context.plugin.zsh"
         fi
         
         # ECR Manager - load when ecr-mgr command is used
