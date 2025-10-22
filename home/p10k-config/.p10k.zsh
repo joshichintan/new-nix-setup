@@ -47,6 +47,7 @@
     direnv                  # direnv status (https://direnv.net/)
     # asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
     mise                    # mise version manager (https://mise.jdx.dev/)
+    aws_vault               # aws-vault session status
     virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
@@ -1466,11 +1467,14 @@
   #   typeset -g POWERLEVEL9K_AWS_TEST_VISUAL_IDENTIFIER_EXPANSION='⭐'
   #   typeset -g POWERLEVEL9K_AWS_TEST_CONTENT_EXPANSION='> ${P9K_CONTENT} <'
   typeset -g POWERLEVEL9K_AWS_CLASSES=(
-      # '*prod*'  PROD    # These values are examples that are unlikely
-      # '*test*'  TEST    # to match your needs. Customize them as needed.
+      '*prod*'  PROD
+      '*dev*'   DEV
       '*'       DEFAULT)
-  typeset -g POWERLEVEL9K_AWS_DEFAULT_FOREGROUND=208
-  # typeset -g POWERLEVEL9K_AWS_DEFAULT_VISUAL_IDENTIFIER_EXPANSION='⭐'
+  
+  # AWS class styling
+  typeset -g POWERLEVEL9K_AWS_DEFAULT_FOREGROUND=214  # Amber for default (staging, test, etc.)
+  typeset -g POWERLEVEL9K_AWS_PROD_FOREGROUND=196     # Red for prod
+  typeset -g POWERLEVEL9K_AWS_DEV_FOREGROUND=28       # Green for dev
 
   # AWS segment format. The following parameters are available within the expansion.
   #
@@ -1757,6 +1761,46 @@
     # and regular prompts.
     prompt_example
   }
+
+  # AWS Vault specific settings
+  # AWS Vault timing icons (timing state)
+  typeset -g POWERLEVEL9K_AWS_VAULT_EXPIRED_VISUAL_IDENTIFIER_EXPANSION='☁️'      # Expired
+  typeset -g POWERLEVEL9K_AWS_VAULT_RUNNING_OUT_VISUAL_IDENTIFIER_EXPANSION='⛅'  # Running out
+  typeset -g POWERLEVEL9K_AWS_VAULT_HEALTHY_VISUAL_IDENTIFIER_EXPANSION='☀️'      # Healthy
+  
+  ###############[ AWS_VAULT: aws-vault session status ]###############
+  function prompt_aws_vault() {
+    # Check if aws-vault session is active
+    if [ -z "$AWS_VAULT" ]; then
+      return # No active session
+    fi
+
+    # Calculate timing and determine icon using p10k variables
+    local icon="${POWERLEVEL9K_AWS_VAULT_HEALTHY_VISUAL_IDENTIFIER_EXPANSION}"  # Default healthy icon
+    
+    if [ -n "$AWS_CREDENTIAL_EXPIRATION" ]; then
+      local current_epoch=$(date +%s)
+      local expiration_epoch=$(date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$AWS_CREDENTIAL_EXPIRATION" '+%s' 2>/dev/null)
+      
+      if [ $? -eq 0 ]; then
+        local seconds_until_expiration=$((expiration_epoch - current_epoch))
+        local minutes_until_expiration=$((seconds_until_expiration / 60))
+        
+        if [ "$seconds_until_expiration" -le 0 ]; then
+          icon="${POWERLEVEL9K_AWS_VAULT_EXPIRED_VISUAL_IDENTIFIER_EXPANSION}"  # Expired
+        elif [ "$minutes_until_expiration" -lt 5 ]; then
+          icon="${POWERLEVEL9K_AWS_VAULT_RUNNING_OUT_VISUAL_IDENTIFIER_EXPANSION}"  # Running out
+        fi
+      fi
+    fi
+
+    # Use p10k segment with default styling (no class-based colors)
+    p10k segment -i $icon
+  }
+
+  
+  # AWS Vault show conditions
+  typeset -g POWERLEVEL9K_AWS_VAULT_SHOW_ON_COMMAND='aws-vault|aws'
 
   # User-defined prompt segments can be customized the same way as built-in segments.
   # typeset -g POWERLEVEL9K_EXAMPLE_FOREGROUND=208
