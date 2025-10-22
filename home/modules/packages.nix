@@ -43,7 +43,7 @@
     awscli2
     # amazon-ecr-credential-helper
     aws-vault
-    terraform
+    # terraform
     # Note: smart-ecr-helper is provided by ecr.nix module
     # kubectl # installed through rancher-desktop
     # docker
@@ -77,7 +77,7 @@
     _1password-cli
 
     # Moved from darwin common packages
-    nix  # Nix package manager
+    # nix  # Nix package manager
     coreutils
     diffr # Modern Unix `diff`
     difftastic # Modern Unix `diff`
