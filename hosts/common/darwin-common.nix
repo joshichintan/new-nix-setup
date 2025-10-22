@@ -102,6 +102,8 @@ in {
       "rancher"
       "visual-studio-code"
       "raycast"
+      "wezterm"
+      "postman"
     ];
     masApps = {
       # "Keynote" = 409183694;

@@ -6,7 +6,7 @@
 }: {
   # Utility programs
   programs.gpg.enable = true;
-  programs.alacritty.enable = true;
+  # programs.alacritty.enable = true;  # Removed - using WezTerm instead
 
   programs.direnv = {
     enable = true;

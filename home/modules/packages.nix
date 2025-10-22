@@ -37,7 +37,7 @@
     
     # JSON and API tools
     jq  # JSON processor
-    postman  # API development platform
+    # postman  # Moved to Homebrew casks for GUI app
 
     # # Cloud tools
     awscli2
@@ -88,7 +88,7 @@
     entr # Modern Unix `watch`
     gh
     vault
-    wezterm
+    # wezterm  # Moved to Homebrew casks for GUI app
     # k9s
   ];
 }
