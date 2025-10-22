@@ -185,6 +185,41 @@
           fi
           # Oh My Zsh docker plugin is already loaded above for aliases
         fi
+        
+        # 1Password CLI completion - load automatically if op exists
+        if command -v op >/dev/null 2>&1; then
+          source <(op completion zsh)
+        fi
+        
+        # ══════════════════════════════════════════════════════════════════════
+        # CUSTOM SCRIPTS DIRECTORY
+        # ══════════════════════════════════════════════════════════════════════
+        # Auto-source all .sh files from custom-scripts directory
+        # This directory is NOT managed by Home Manager - add your own scripts here
+        
+        # Create custom-scripts directory if it doesn't exist
+        CUSTOM_SCRIPTS_DIR="${config.programs.zsh.dotDir}/custom-scripts"
+        if [[ ! -d "$CUSTOM_SCRIPTS_DIR" ]]; then
+          mkdir -p "$CUSTOM_SCRIPTS_DIR"
+          echo "Created custom scripts directory: $CUSTOM_SCRIPTS_DIR"
+        fi
+        
+        # Source all .sh files from custom-scripts directory
+        if [[ -d "$CUSTOM_SCRIPTS_DIR" ]]; then
+          # Use nullglob to handle empty directory gracefully
+          setopt nullglob 2>/dev/null || true
+          for script in "$CUSTOM_SCRIPTS_DIR"/*.sh; do
+            if [[ -f "$script" && -r "$script" ]]; then
+              # Skip files starting with . or _ (hidden/system files)
+              if [[ "$(basename "$script")" =~ ^[^._] ]]; then
+                source "$script"
+              fi
+            fi
+          done
+          # Reset nullglob
+          unsetopt nullglob 2>/dev/null || true
+        fi
+        # ══════════════════════════════════════════════════════════════════════
       '';
 
       # ══════════════════════════════════════════════════════════════════════

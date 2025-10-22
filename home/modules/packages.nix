@@ -41,7 +41,7 @@
 
     # # Cloud tools
     awscli2
-    amazon-ecr-credential-helper
+    # amazon-ecr-credential-helper
     aws-vault
     terraform
     # Note: smart-ecr-helper is provided by ecr.nix module
@@ -74,6 +74,7 @@
     # # Security
     # gpg
     # pass  # Password manager
+    _1password-cli
 
     # Moved from darwin common packages
     nix  # Nix package manager
@@ -86,6 +87,7 @@
     duf # Modern Unix `df`
     entr # Modern Unix `watch`
     gh
+    vault
     wezterm
     # k9s
   ];

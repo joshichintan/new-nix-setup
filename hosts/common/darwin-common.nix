@@ -168,10 +168,13 @@ in {
       show-recents = false;
       show-process-indicators = true;
       orientation = "left";
-      tilesize = 36;
+      tilesize = 16;  # Smallest dock size
       minimize-to-application = true;
       mineffect = "scale";
       enable-window-tool = false;
+      # Enable magnification with small hover effect
+      magnification = true;
+      largesize = 32;  # Small magnification size
     };
     "com.apple.ActivityMonitor" = {
       OpenMainWindow = true;
