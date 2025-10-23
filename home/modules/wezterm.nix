@@ -51,7 +51,7 @@
       config.font_size = 13
       config.window_decorations = "RESIZE"
 
-      config.colorScheme = "gruvbox_material_dark_hard"
+      config.color_scheme = "gruvbox_material_dark_hard"
 
       -- macOS-specific visual polish
       config.macos_window_background_blur = 10
