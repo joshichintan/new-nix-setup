@@ -575,13 +575,18 @@
   # [Feature request: add segment for mise](https://github.com/romkatv/powerlevel10k/issues/2212)
   # This is port asdf to mise
   function prompt_mise() {
-    local plugins=("${(@f)$(mise current 2>/dev/null)}")
-    local plugin
-    for plugin in "${plugins[@]}"; do
-      local parts=("${(@s/ /)plugin}")
-      local tool=${(U)parts[1]}
-      local version=${parts[2]}
-      p10k segment -r -i "${tool}_ICON" -s $tool -t "$version"
+    # Get mise tools with installation status using JSON output
+    local mise_output=$(mise ls --current --json 2>/dev/null)
+    if [[ -z "$mise_output" ]]; then
+      return 0
+    fi
+    
+    # Parse JSON structure: {"tool_name": [{"version": "...", "installed": true, ...}]}
+    echo "$mise_output" | jq -r 'to_entries[] | select(.value[0].installed == true) | "\(.key) \(.value[0].version)"' 2>/dev/null | while read -r tool version; do
+      if [[ -n "$tool" && -n "$version" ]]; then
+        local tool_upper=${(U)tool}
+        p10k segment -r -i "${tool_upper}_ICON" -s $tool_upper -t "$version"
+      fi
     done
   }
 

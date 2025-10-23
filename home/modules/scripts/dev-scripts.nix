@@ -43,19 +43,20 @@
       source "$ZDOTDIR/.zshrc" 2>/dev/null || true
     }
 
-    # Mise Auto-activation and Installation Script
-    mise_precmd() {
+    # Mise Auto-installation Script (environment activation handled by programs.mise)
+    mise_install_precmd() {
       # Skip first run to avoid p10k instant prompt interference
-      if [[ -z "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
-        return 0
-      fi
+      #if [[ -z "$POWERLEVEL9K_INSTANT_PROMPT_THEME_STYLED" ]]; then
+      #  return 0
+      #fi
       
-      # Install missing tools and display if installed
+      # Only install missing tools, don't interfere with environment activation
+      # The programs.mise module handles the proper environment setup
       if mise ls --current --json 2>/dev/null | grep -q '"installed": false'; then
         echo "» Installing missing tools..."
         mise install
       fi
     }
-    add-zsh-hook precmd mise_precmd
+    add-zsh-hook precmd mise_install_precmd
   '';
 }
