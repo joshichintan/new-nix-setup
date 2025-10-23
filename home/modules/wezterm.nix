@@ -49,10 +49,9 @@
       config.enable_tab_bar = false
       config.font = wezterm.font("MesloLGS Nerd Font")
       config.font_size = 13
-      config.enable_tab_bar = false
       config.window_decorations = "RESIZE"
 
-      config.colorScheme = "GruvboxHardDark"
+      config.colorScheme = "gruvbox_material_dark_hard"
 
       -- macOS-specific visual polish
       config.macos_window_background_blur = 10

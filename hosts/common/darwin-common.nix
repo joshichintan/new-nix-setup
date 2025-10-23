@@ -82,7 +82,7 @@ in {
     #global.autoUpdate = true; # enabling this makes brew update itself
 
     brews = [
-      "bitwarden-cli"
+      #"bitwarden-cli"
       # "mise"  # Temporarily disabled due to Rosetta 2 issue
       #"borders"
     ];
@@ -102,8 +102,6 @@ in {
       "rancher"
       "visual-studio-code"
       "raycast"
-      "wezterm"
-      "postman"
     ];
     masApps = {
       # "Keynote" = 409183694;
@@ -135,7 +133,7 @@ in {
     NSGlobalDomain."com.apple.mouse.tapBehavior" = 1;
     NSGlobalDomain.NSWindowShouldDragOnGesture = true;
     NSGlobalDomain.NSAutomaticSpellingCorrectionEnabled = false;
-    #LaunchServices.LSQuarantine = false; # disables "Are you sure?" for new apps
+    LaunchServices.LSQuarantine = false; # disables "Are you sure?" for new apps
     #loginwindow.GuestEnabled = false;
     finder.FXPreferredViewStyle = "Nlsv";
   };

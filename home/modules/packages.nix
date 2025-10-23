@@ -37,7 +37,7 @@
     
     # JSON and API tools
     jq  # JSON processor
-    # postman  # Moved to Homebrew casks for GUI app
+    postman  # Moved to Homebrew casks for GUI app
 
     # # Cloud tools
     awscli2
