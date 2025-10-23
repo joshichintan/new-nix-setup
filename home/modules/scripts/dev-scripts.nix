@@ -58,5 +58,6 @@
       fi
     }
     add-zsh-hook chpwd mise_install_precmd
+    add-zsh-hook precmd mise_install_precmd
   '';
 }
