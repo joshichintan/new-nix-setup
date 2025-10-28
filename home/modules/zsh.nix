@@ -184,6 +184,11 @@
         if command -v op >/dev/null 2>&1; then
           source <(op completion zsh)
         fi
+
+        # aws-vault CLI completion - load automatically if aws-vault exists
+        if command -v aws-vault >/dev/null 2>&1; then
+          source <(aws-vault completion zsh)
+        fi
         
         # ══════════════════════════════════════════════════════════════════════
         # CUSTOM SCRIPTS DIRECTORY
@@ -217,6 +222,20 @@
       '';
 
       # ══════════════════════════════════════════════════════════════════════
+      # SECTION 4: FZF-TAB CONFIGURATION (minimal, matches fzf options)
+      # ══════════════════════════════════════════════════════════════════════
+      fzfTabConfig = lib.mkOrder 3000 ''
+        # Configure fzf-tab to use the same options as regular fzf
+        FZF_TAB_OPTS=(
+          "--layout=reverse"
+          "--border"
+        )
+        
+        zstyle ":fzf-tab:*" fzf-command fzf
+        zstyle ":fzf-tab:*" fzf-flags $FZF_TAB_OPTS
+      '';
+
+      # ══════════════════════════════════════════════════════════════════════
       # SECTION 5: Performance Profiling Output (DISABLED)
       # ══════════════════════════════════════════════════════════════════════
       # profilingOutput = lib.mkOrder 9999 ''
@@ -224,7 +243,7 @@
       #   zprof
       # '';
     in
-      lib.mkMerge [ p10kPrompt environment deferredPlugins ];
+      lib.mkMerge [ p10kPrompt environment deferredPlugins fzfTabConfig ];
 
     # Native Nix plugins (much faster than zplug)
     plugins = [
@@ -267,6 +286,9 @@
       
       # Config editing aliases
       nix-config = "nvim $NIX_USER_CONFIG_PATH";
+      
+      # Shell reload alias
+      reload = "exec zsh";
     };
   };
 }

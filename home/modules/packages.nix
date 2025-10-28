@@ -42,7 +42,7 @@
     # # Cloud tools
     awscli2
     # amazon-ecr-credential-helper
-    aws-vault
+    # aws-vault  # Using custom version from custom-pkgs/aws-vault-custom.nix
     # terraform
     # Note: smart-ecr-helper is provided by ecr.nix module
     # kubectl # installed through rancher-desktop

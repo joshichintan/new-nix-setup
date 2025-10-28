@@ -56,6 +56,7 @@
       -- macOS-specific visual polish
       config.macos_window_background_blur = 10
 
+      config.scroll_to_bottom_on_input = true
       return config
     '';
   };

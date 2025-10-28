@@ -37,12 +37,6 @@
       fi
     }
 
-    # Shell Configuration Reload Script
-    reload() {
-      source ~/.zshenv 2>/dev/null || true
-      source "$ZDOTDIR/.zshrc" 2>/dev/null || true
-    }
-
     # Mise Auto-installation Script (environment activation handled by programs.mise)
     mise_install_precmd() {
       # Skip first run to avoid p10k instant prompt interference

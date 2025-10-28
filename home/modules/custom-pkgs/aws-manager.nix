@@ -47,8 +47,15 @@ let
         local start_url
         local region
         
-        start_url=$(grep -A 10 "^\[sso-session $session_name\]" "$aws_config" | grep 'sso_start_url' | cut -d'=' -f2 | tr -d ' ')
-        region=$(grep -A 10 "^\[sso-session $session_name\]" "$aws_config" | grep 'sso_region' | cut -d'=' -f2 | tr -d ' ')
+        start_url=$(awk -v session="$session_name" '
+            /^\[sso-session / { in_session = ($0 == "[sso-session " session "]") }
+            in_session && /^sso_start_url/ { split($0, a, "="); gsub(/^[ \t]+|[ \t]+$/, "", a[2]); print a[2]; exit }
+        ' "$aws_config")
+        
+        region=$(awk -v session="$session_name" '
+            /^\[sso-session / { in_session = ($0 == "[sso-session " session "]") }
+            in_session && /^sso_region/ { split($0, a, "="); gsub(/^[ \t]+|[ \t]+$/, "", a[2]); print a[2]; exit }
+        ' "$aws_config")
         
         echo "$start_url $region"
     }
@@ -57,6 +64,40 @@ let
     create_backup() {
         local file="$1"
         cp "$file" "$file.backup.$(date +%s)"
+    }
+    
+    # Clean up excessive blank lines in AWS config
+    cleanup_config_spacing() {
+        local aws_config="$HOME/.aws/config"
+        if [[ ! -f "$aws_config" ]]; then
+            return 0
+        fi
+        
+        # Remove excessive blank lines (more than 2 consecutive blank lines)
+        # and ensure single blank line between sections
+        awk '
+        BEGIN { blank_count = 0; in_profile = 0 }
+        /^\[/ {
+            if (blank_count > 1) {
+                print ""
+            }
+            blank_count = 0
+            in_profile = 1
+            print
+            next
+        }
+        /^$/ {
+            blank_count++
+            if (blank_count <= 1) {
+                print
+            }
+            next
+        }
+        {
+            blank_count = 0
+            print
+        }
+        ' "$aws_config" > "$aws_config.tmp" && mv "$aws_config.tmp" "$aws_config"
     }
     
     # Prompt for SSO login when token is expired (non-interactive - returns error)
@@ -97,7 +138,7 @@ let
     
     # Clean name for profile generation
     clean_name() {
-        echo "$1" | sed 's/[^a-zA-Z0-9_-]//g' | tr '[:upper:]' '[:lower:]'
+        echo "$1" | sed 's/[^a-zA-Z0-9_-]//g' | tr '[:upper:]' '[:lower:]' | sed 's/^[-_]\+//' | sed 's/[-_]\+$//' | sed 's/[-_]\+/-/g'
     }
     
     # Get access token for SSO session
@@ -111,8 +152,9 @@ let
                 if [[ -f "$cache_file" ]]; then
                     local token
                     token=$(jq -r --arg url "$start_url" --arg reg "$region" '
-                        select(.accessToken and .expiresAt and .startUrl==$url and .region==$reg) |
-                        select((.expiresAt | fromdateiso8601) > now) |
+                        select(.accessToken and .expiresAt and .region==$reg) |
+                        select((.startUrl==$url or .issuerUrl==$url)) |
+                        select((.expiresAt | gsub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) > now) |
                         .accessToken
                     ' "$cache_file" 2>/dev/null)
                     
@@ -128,17 +170,24 @@ let
     }
     
     # Generate profile name
-    generate_profile_name() {
-        local session_name="$1"
-        local account_name="$2"
-        local role_name="$3"
-        
-        local session_clean=$(clean_name "$session_name")
-        local account_clean=$(clean_name "$account_name")
-        local role_clean=$(clean_name "$role_name")
-        
-        echo "''${session_clean}_''${account_clean}_''${role_clean}"
-    }
+  generate_profile_name() {
+    local session_name="$1"
+    local account_id="$2"
+    local account_name="$3"
+    local role_name="$4"
+    
+    # Keep session name as-is (preserve leading underscore like _altruist)
+    # Don't clean the session name - preserve it exactly as it comes from AWS SSO
+    
+    # Clean account name (remove leading underscores)
+    local account_clean=$(echo "$account_name" | sed 's/^_*//')
+    
+    # Keep role name as-is (preserve leading underscore like _DEV)
+    # Don't clean the role name - preserve it exactly as it comes from AWS SSO
+    
+    # New format: _session_account_id--account_name_role_name
+    echo "_''${session_name}_''${account_id}--''${account_clean}_''${role_name}"
+  }
     
     # Get existing profiles for a specific SSO session
     get_existing_profiles_for_session() {
@@ -179,9 +228,16 @@ let
         # Note: region removed - profiles inherit from [default] or environment
         local aws_config="$HOME/.aws/config"
         
+        # Add a blank line before profile if the file doesn't end with a blank line
+        if [[ -f "$aws_config" ]] && [[ -s "$aws_config" ]]; then
+            local last_char=$(tail -c1 "$aws_config")
+            if [[ "$last_char" != "" ]]; then
+                echo "" >> "$aws_config"
+            fi
+        fi
+        
         # Add profile to config
         cat >> "$aws_config" << EOF
-
 [profile $profile_name]
 sso_session = $session_name
 sso_account_id = $account_id
@@ -223,14 +279,13 @@ EOF
         local details
         details=$(get_sso_session_details "$session_name")
         
-        if [[ -z "$details" || "$details" == "|" ]]; then
+        if [[ -z "$details" ]]; then
             echo "  ✗ No session details found"
             return 1
         fi
         
         local start_url region
-        start_url="''${details%|*}"
-        region="''${details#*|}"
+        read -r start_url region <<< "$details"
         
         # Get access token
         local token
@@ -274,8 +329,10 @@ EOF
                 
                 while read -r role_name; do
                     local profile_name
-                    profile_name=$(generate_profile_name "$session_name" "$account_name" "$role_name")
+                    profile_name=$(generate_profile_name "$session_name" "$account_id" "$account_name" "$role_name")
                     echo "$profile_name" >> "$available_file"
+                    # Store profile name and role name mapping
+                    echo "$profile_name|$role_name" >> "$temp_dir/profile_role_mapping.txt"
                 done < "$temp_dir/roles_''${account_id}.txt"
             fi
         done < "$temp_dir/accounts.txt"
@@ -302,17 +359,20 @@ EOF
             echo "  Adding new profiles from SSO:"
             while read -r profile_name; do
                 echo "    + $profile_name"
-                # Extract account and role info from profile name
-                local account_name role_name
-                account_name=$(echo "$profile_name" | sed "s/^''${session_name}_//" | sed 's/_[^_]*$//')
-                role_name=$(echo "$profile_name" | sed "s/.*_//")
+                # Get the original role name from the mapping file
+                local role_name
+                role_name=$(grep "^''${profile_name}|" "$temp_dir/profile_role_mapping.txt" | cut -d'|' -f2)
                 
-                # Find account ID
-                local account_id
-                account_id=$(echo "$accounts_json" | jq -r --arg name "$account_name" '.accountList[] | select(.accountName == $name) | .accountId')
-                
-                if [[ -n "$account_id" ]]; then
-                    create_profile "$profile_name" "$account_id" "$role_name" "$session_name"
+                if [[ -n "$role_name" ]]; then
+                    # Extract account ID and account name from profile name
+                    # Format: _altruist_123456789012--account-name_ROLE
+                    local account_id account_name
+                    account_id=$(echo "$profile_name" | sed "s/^_''${session_name}_//" | sed 's/--.*$//')
+                    account_name=$(echo "$profile_name" | sed "s/^_''${session_name}_[0-9]*--//" | sed 's/_.*$//')
+                    
+                    if [[ -n "$account_id" && -n "$account_name" ]]; then
+                        create_profile "$profile_name" "$account_id" "$role_name" "$session_name"
+                    fi
                 fi
             done < "$to_add_file"
         fi
@@ -362,6 +422,9 @@ EOF
         
         echo "Profile sync complete"
         echo ""
+        
+        # Clean up config file spacing
+        cleanup_config_spacing
         
         # Trigger ECR validation after AWS sync
         echo "Validating ECR registries..."

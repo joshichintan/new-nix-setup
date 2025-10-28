@@ -31,7 +31,8 @@
     enableZshIntegration = true;
     tmux.enableShellIntegration = true;
     defaultOptions = [
-      "--no-mouse"
+      "--layout=reverse"
+      "--border"
     ];
   };
 
