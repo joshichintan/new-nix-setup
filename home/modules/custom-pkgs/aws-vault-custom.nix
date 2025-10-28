@@ -3,11 +3,11 @@
 let
   aws-vault-custom = pkgs.stdenv.mkDerivation rec {
     pname = "aws-vault";
-    version = "1.0.0";
+    version = "1.0.1";
 
     src = pkgs.fetchurl {
       url = "https://github.com/joshichintan/aws-vault/releases/download/v${version}/aws-vault-darwin-arm64";
-      sha256 = "sha256:54837bd874cea55d1d96254f6d43eddd2b6c274f4e9d70716f4cf65cf9b53959";
+      sha256 = "sha256:9f324ccd9044015b30fd1990438bd708ad33d6761d7a45cac573be2b3adc4397";
     };
 
     dontUnpack = true;
