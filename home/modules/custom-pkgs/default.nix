@@ -6,6 +6,6 @@
     ./ecr-manager.nix
     ./smart-ecr-helper.nix
     ./ssh-setup.nix
-    ./aws-vault-custom.nix
+    # ./aws-vault-custom.nix  # Disabled
   ];
 }
